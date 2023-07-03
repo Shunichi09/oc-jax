@@ -1,0 +1,151 @@
+<mujoco model="simple_arm2d">
+    <compiler angle="radian" meshdir="assets" autolimits="true" />
+    <option integrator="implicitfast" />
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+        <rgba haze="0.15 0.25 0.35 1" />
+        <global azimuth="120" elevation="-20" />
+    </visual>
+
+    <default>
+        <default class="simple_arm2d">
+            <material specular="0.5" shininess="0.25" />
+            <joint armature="0.1" damping="1" axis="0 0 1" range="-2.8973 2.8973" />
+            <general dyntype="none" biastype="affine" ctrlrange="-2.8973 2.8973" forcerange="-87 87" />
+            <default class="visual">
+                <geom contype="0" conaffinity="0" group="2" />
+            </default>
+            <default class="collision">
+                <geom condim="4" />
+            </default>
+        </default>
+    </default>
+
+    <asset>
+        <material class="simple_arm2d" name="white" rgba="1 1 1 1" />
+        <material class="simple_arm2d" name="off_white" rgba="0.75 0.75 0.75 1" />
+        <material class="simple_arm2d" name="dark" specular="0" shininess="0.25"
+            rgba="0.2 0.2 0.2 1" />
+
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512"
+            height="3072" />
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+            rgb2="0.1 0.2 0.3"
+            markrgb="0.8 0.8 0.8" width="300" height="300" />
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+            reflectance="0.2" />
+    </asset>
+
+
+    <worldbody>
+        <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
+        <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" />
+
+        <body name="actor_link1" pos="-0.5 0 0.5">
+            <joint name="actor_joint1" class="simple_arm2d" range="-1.57 1.57" />
+            <geom name="actor_visual_geom1" type="sphere" size="0.02" material="off_white"
+                class="visual" />
+            <geom name="actor_collision_geom1" type="capsule" size="0.01 0.075 0" pos="0.075 0 0"
+                euler="0 -1.57079633 0" class="collision" material="white" />
+
+            <body name="actor_link2" pos="0.15 0 0.0">
+                <joint name="actor_joint2" class="simple_arm2d" />
+                <geom name="actor_visual_geom2" type="sphere" size="0.02" material="off_white"
+                    class="visual" />
+                <geom name="actor_collision_geom2" type="capsule" size="0.01 0.075 0"
+                    pos="0.075 0 0" euler="0 -1.57079633 0" class="collision" material="white" />
+
+                <body name="actor_link3" pos="0.175 0 0.0">
+                    <joint name="actor_joint3" class="simple_arm2d" />
+                    <geom name="actor_visual_geom3_1" type="sphere" size="0.02" material="off_white"
+                        class="visual" />
+                    <geom name="actor_collision_geom3" type="capsule" size="0.01 0.075 0"
+                        pos="0.075 0 0" euler="0 -1.57079633 0" class="collision" material="white" />
+
+                    <geom name="actor_visual_geom3_2" type="cylinder" size="0.01 0.03 0"
+                        euler="-1.57079633 0 0" pos="0.15 0 0" material="off_white" class="visual" />
+                    <geom name="actor_visual_geom3_3" type="cylinder" size="0.01 0.03 0"
+                        quat="0.5 0.5 0.5 0.5" pos="0.16 0.03 0" material="off_white"
+                        class="visual" />
+                    <geom name="actor_visual_geom3_4" type="cylinder" size="0.01 0.03 0"
+                        quat="0.5 0.5 0.5 0.5" pos="0.16 -0.03 0" material="off_white"
+                        class="visual" />
+
+                    <body name="actor_end_effector_link" pos="0.175 0 0">
+                        <site name="actor_end_effector_site" type="box" size="0.005 0.005 0.005"
+                            rgba="0 0.75 0 1" />
+                    </body>
+
+                </body>
+            </body>
+        </body>
+
+        <body name="observer_link1" pos="0.6 0 0.5" euler="0 0 3.141592">
+            <joint name="observer_joint1" class="simple_arm2d" range="-1.57 1.57" />
+            <geom name="observer_visual_geom1" type="sphere" size="0.02" material="dark"
+                class="visual" />
+            <geom name="observer_collision_geom1" type="capsule" size="0.01 0.075 0" pos="0.075 0 0"
+                euler="0 -1.57079633 0" class="collision" material="white" />
+
+            <body name="observer_link2" pos="0.15 0 0.0">
+                <joint name="observer_joint2" class="simple_arm2d" />
+                <geom name="observer_visual_geom2" type="sphere" size="0.02" material="dark"
+                    class="visual" />
+                <geom name="observer_collision_geom2" type="capsule" size="0.01 0.075 0"
+                    pos="0.075 0 0" euler="0 -1.57079633 0" class="collision" material="white" />
+
+                <body name="observer_link3" pos="0.15 0 0.0">
+                    <joint name="observer_joint3" class="simple_arm2d" />
+                    <geom name="observer_visual_geom3_1" type="sphere" size="0.02"
+                        material="dark" class="visual" />
+                    <geom name="observer_collision_geom3" type="capsule" size="0.01 0.075 0"
+                        pos="0.075 0 0" euler="0 -1.57079633 0" class="collision" material="white" />
+
+                    <geom name="observer_visual_geom3_2" type="box" size="0.01 0.01 0.03"
+                        euler="-1.57079633 0 0" pos="0.15 0 0" material="dark" class="visual" />
+
+                    <body name="observer_camera_link" pos="0.15 0 0">
+                        <camera name="observer_camera" fovy="45"
+                            quat="0.5 0.5 -0.5 -0.5" />
+                    </body>
+
+                </body>
+            </body>
+        </body>
+
+        <body name="wall1" pos="0.02 0.15 0.5">
+            <geom name="wall1_geom" type="box" size="0.005 0.1 0.1"
+                euler="0 0 0.31" material="dark" class="collision" />
+        </body>
+
+        <body name="wall2" pos="0.03 -0.2 0.5">
+            <geom name="wall2_geom" type="box" size="0.005 0.1 0.1"
+                euler="0 0 -0.3" material="dark" class="collision" />
+        </body>
+
+        <body name="target" pos="0 0 0.5">
+            <site name="target_site" size="0.005 0.005 0.005" rgba="0.75 0 0 1" />
+        </body>
+
+    </worldbody>
+
+    <actuator>
+        <general class="simple_arm2d" name="actor_actuator1" joint="actor_joint1" gainprm="4500"
+            biasprm="0 -4500 -450" />
+        <general class="simple_arm2d" name="actor_actuator2" joint="actor_joint2" gainprm="4500"
+            biasprm="0 -4500 -450" />
+        <general class="simple_arm2d" name="actor_actuator3" joint="actor_joint3" gainprm="3500"
+            biasprm="0 -3500 -350" />
+
+        <general class="simple_arm2d" name="observer_actuator1" joint="observer_joint1"
+            gainprm="4500"
+            biasprm="0 -4500 -450" />
+        <general class="simple_arm2d" name="observer_actuator2" joint="observer_joint2"
+            gainprm="4500" biasprm="0 -4500 -450" />
+        <general class="simple_arm2d" name="observer_actuator3" joint="observer_joint3"
+            gainprm="3500"
+            biasprm="0 -3500 -350" />
+    </actuator>
+
+</mujoco>
