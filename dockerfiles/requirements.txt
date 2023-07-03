@@ -16,3 +16,5 @@ black
 gymnasium
 imageio
 moviepy
+mujoco
+open3d

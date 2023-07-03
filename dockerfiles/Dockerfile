@@ -73,12 +73,22 @@ RUN echo "alias load_apop_venv='source ${VENV_PATH}/bin/activate'" >> /home/${US
 # Remove apt caches
 RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+WORKDIR /home/$USER
+
+# Install Mujoco
+RUN mkdir -p .mujoco
+WORKDIR /home/$USER/.mujoco
+ENV MUJOCO_VERSION "2.3.6"
+ENV MUJOCO_ARCHIVE "mujoco-${MUJOCO_VERSION}-linux-x86_64.tar.gz"
+RUN wget -q "https://github.com/deepmind/mujoco/releases/download/${MUJOCO_VERSION}/${MUJOCO_ARCHIVE}"
+RUN wget -q "https://github.com/deepmind/mujoco/releases/download/${MUJOCO_VERSION}/${MUJOCO_ARCHIVE}.sha256"
+RUN shasum -c "${MUJOCO_ARCHIVE}.sha256"
+RUN tar -xvzf ${MUJOCO_ARCHIVE}
+
 # chown
 RUN chown -R $USER /home/$USER
 
 # Switch user
 USER $USER
-
-WORKDIR /home/$USER
 
 CMD [ "bash" ]
