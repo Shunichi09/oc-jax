@@ -73,7 +73,7 @@
                         class="visual" />
 
                     <body name="actor_end_effector_link" pos="0.175 0 0">
-                        <site name="actor_end_effector_site" type="box" size="0.005 0.005 0.005"
+                        <geom name="actor_end_effector_geom" type="box" size="0.005 0.005 0.005"
                             rgba="0 0.75 0 1" />
                     </body>
 
@@ -124,28 +124,26 @@
                 euler="0 0 -0.3" material="dark" class="collision" />
         </body>
 
-        <body name="target" pos="0 0 0.5">
-            <site name="target_site" size="0.005 0.005 0.005" rgba="0.75 0 0 1" />
+        <body name="target_link" pos="0.05 0.01 0.5">
+            <geom name="target_geom" size="0.005 0.005 0.005" rgba="0.75 0 0 1" />
         </body>
 
     </worldbody>
 
     <actuator>
-        <general class="simple_arm2d" name="actor_actuator1" joint="actor_joint1" gainprm="4500"
-            biasprm="0 -4500 -450" />
-        <general class="simple_arm2d" name="actor_actuator2" joint="actor_joint2" gainprm="4500"
-            biasprm="0 -4500 -450" />
-        <general class="simple_arm2d" name="actor_actuator3" joint="actor_joint3" gainprm="3500"
-            biasprm="0 -3500 -350" />
+        <velocity class="simple_arm2d" name="actor_actuator1" joint="actor_joint1"
+            kv="1000" />
+        <velocity class="simple_arm2d" name="actor_actuator2" joint="actor_joint2"
+            kv="1000" />
+        <velocity class="simple_arm2d" name="actor_actuator3" joint="actor_joint3"
+            kv="1000" />
 
-        <general class="simple_arm2d" name="observer_actuator1" joint="observer_joint1"
-            gainprm="4500"
-            biasprm="0 -4500 -450" />
-        <general class="simple_arm2d" name="observer_actuator2" joint="observer_joint2"
-            gainprm="4500" biasprm="0 -4500 -450" />
-        <general class="simple_arm2d" name="observer_actuator3" joint="observer_joint3"
-            gainprm="3500"
-            biasprm="0 -3500 -350" />
+        <velocity class="simple_arm2d" name="observer_actuator1" joint="observer_joint1"
+            kv="1000" />
+        <velocity class="simple_arm2d" name="observer_actuator2" joint="observer_joint2"
+            kv="1000" />
+        <velocity class="simple_arm2d" name="observer_actuator3" joint="observer_joint3"
+            kv="1000" />
     </actuator>
 
 </mujoco>

@@ -65,12 +65,15 @@ def camera_intrinsic(mj_model, camera_name) -> np.ndarray:
     return K
 
 
-def segmentation_object_id_map(mj_model, segmentation_array):
-    def remove_suffixes(name: str):
-        name = re.sub(r"_geom|_collision|_visual", "", name)
-        name = re.sub(r"_[0-9]+$", "", name)  # remove _XX (X is number)
-        return re.sub(r"_$", "", name)  # remove last underbar
+def _remove_suffixes(name: str):
+    name = re.sub(r"_geom|_collision|_visual", "", name)
+    name = re.sub(r"_[0-9]+$", "", name)  # remove _XX (X is number)
+    return re.sub(r"_$", "", name)  # remove last underbar
 
+
+def segmentation_object_id_map(
+    mj_model, segmentation_array, remove_suffixes_func=_remove_suffixes
+):
     mujoco_type_image = segmentation_array[:, :, 0]
     mujoco_id_image = segmentation_array[:, :, 1]
 
@@ -83,7 +86,7 @@ def segmentation_object_id_map(mj_model, segmentation_array):
         object_name = str(
             mujoco.mj_id2name(mj_model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
         )
-        object_name = remove_suffixes(object_name)
+        object_name = remove_suffixes_func(object_name)
         geom_id = int(geom_id)
         if object_name not in unified_id_map.keys():
             # register only once to unify the id
