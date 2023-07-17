@@ -1,8 +1,8 @@
 from typing import Any, Optional, Dict
 from gymnasium.spaces import Box
 
-from apop.envs.environment import ApopMujocoEnv
-from apop.envs.environment_utils import (
+from apop.envs.mujoco.environment import ApopMujocoEnv
+from apop.envs.mujoco.environment_utils import (
     segmentation_object_id_map,
 )
 from apop.utils.randoms import rand_min_max
@@ -148,21 +148,3 @@ class Arm2dReachingTargetFixedEnv(ApopMujocoEnv):
             self.render()
 
         return ob, ob_info
-
-
-"""
-    def reset(
-        self,
-        *,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
-    ):
-        super().reset(seed=seed)
-
-        self._reset_simulation()
-
-        ob = self.reset_model()
-        if self.render_mode == "human":
-            self.render()
-        return ob, {}
-"""

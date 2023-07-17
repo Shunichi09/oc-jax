@@ -4,6 +4,6 @@ from gymnasium.envs.registration import register
 
 register(
     id="Arm2dReachingTargetFixed-v0",
-    entry_point="apop.envs.arm2d_reaching:Arm2dReachingTargetFixedEnv",
+    entry_point="apop.envs.mujoco.arm2d_reaching:Arm2dReachingTargetFixedEnv",
     max_episode_steps=5000,
 )
