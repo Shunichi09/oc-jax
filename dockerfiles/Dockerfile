@@ -68,6 +68,9 @@ RUN mkdir -p /home/${USER}/tmp/deps
 COPY ./requirements.txt /home/${USER}/tmp/deps
 RUN ${VENV_PATH}/bin/pip install -U -r /home/${USER}/tmp/deps/requirements.txt
 
+# Install jax
+RUN ${VENV_PATH}/bin/pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
 RUN echo "alias load_apop_venv='source ${VENV_PATH}/bin/activate'" >> /home/${USER}/.bashrc
 
 # Remove apt caches
