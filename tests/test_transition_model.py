@@ -110,7 +110,7 @@ class TestTransitionModel:
         batched_u = drng.random(size=(batch_size, 2)) * 0.1
         actual_fx = np.array(
             linear_model.fx(
-                jnp.array(batched_x), jnp.array(batched_u)
+                jnp.array(batched_x), jnp.array(batched_u), 0
             ).block_until_ready()
         )
 
@@ -132,7 +132,7 @@ class TestTransitionModel:
         batched_u = drng.random(size=(batch_size, 2)) * 0.1
         actual_fu = np.array(
             linear_model.fu(
-                jnp.array(batched_x), jnp.array(batched_u)
+                jnp.array(batched_x), jnp.array(batched_u), 0
             ).block_until_ready()
         )
 
