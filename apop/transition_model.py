@@ -3,6 +3,7 @@ import jax
 from jax import numpy as jnp
 from functools import partial
 from abc import ABCMeta, abstractmethod
+from typing import Union
 
 
 class TransitionModel(metaclass=ABCMeta):
@@ -80,7 +81,9 @@ class TransitionModel(metaclass=ABCMeta):
         raise NotImplementedError("Implement the model")
 
     @partial(jax.jit, static_argnums=(0,))
-    def fx(self, x: jnp.ndarray, u: jnp.ndarray, t: int) -> jnp.ndarray:
+    def fx(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
         """gradient of model with respect to the state in batch form
 
         Args:
@@ -91,16 +94,19 @@ class TransitionModel(metaclass=ABCMeta):
         Returns:
             jnp:ndarray: gradient of model with respect to the state, shape (batch_size, state_size, state_size)
         """
-        batch_size = x.shape[0]
         assert x.shape[0] == u.shape[0]
-        jnp_t = jnp.ones(batch_size, dtype=jnp.int32) * t
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
         fx = jax.vmap(
-            jax.jacfwd(self.predict_next_state, argnums=0), in_axes=0, out_axes=0
+            jax.jacfwd(self.predict_next_state, argnums=0),
+            in_axes=(0, 0, None),
+            out_axes=0,
         )
         return fx(x, u, jnp_t)
 
     @partial(jax.jit, static_argnums=(0,))
-    def fu(self, x: jnp.ndarray, u: jnp.ndarray, t: int) -> jnp.ndarray:
+    def fu(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
         """gradient of model with respect to the input in batch form
 
         Args:
@@ -111,24 +117,31 @@ class TransitionModel(metaclass=ABCMeta):
         Returns:
             jnp:ndarray: gradient of model with respect to the state, shape (batch_size, state_size, input_size)
         """
-        batch_size = x.shape[0]
         assert x.shape[0] == u.shape[0]
-        jnp_t = jnp.ones(batch_size, dtype=jnp.int32) * t
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
         fu = jax.vmap(
-            jax.jacfwd(self.predict_next_state, argnums=1), in_axes=0, out_axes=0
+            jax.jacfwd(self.predict_next_state, argnums=1),
+            in_axes=(0, 0, None),
+            out_axes=0,
         )
         return fu(x, u, jnp_t)
 
     @partial(jax.jit, static_argnums=(0,))
-    def fxx(self, x: jnp.ndarray, u: jnp.ndarray, t: int) -> jnp.ndarray:
+    def fxx(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
         raise NotImplementedError
 
     @partial(jax.jit, static_argnums=(0,))
-    def fux(self, x: jnp.ndarray, u: jnp.ndarray, t: int) -> jnp.ndarray:
+    def fux(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
         raise NotImplementedError
 
     @partial(jax.jit, static_argnums=(0,))
-    def fuu(self, x: jnp.ndarray, u: jnp.ndarray, t: int) -> jnp.ndarray:
+    def fuu(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
         raise NotImplementedError
 
 
