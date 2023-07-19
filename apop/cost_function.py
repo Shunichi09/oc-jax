@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import jax
 from jax import numpy as jnp
 from functools import partial
-from typing import Optional
+from typing import Optional, Union
 
 
 class CostFunction(metaclass=ABCMeta):
@@ -12,16 +12,15 @@ class CostFunction(metaclass=ABCMeta):
     @partial(jax.jit, static_argnums=(0,))
     def evaluate_batched_trajectory_cost(
         self, x_sequence: jnp.ndarray, u_sequence: jnp.ndarray
-    ):
-        """evaluate trajectory cost
+    ) -> jnp.ndarray:
+        """Evaluate batched trajectory cost
 
         Args:
-            x (jnp.ndarray): states, (batch_size, pred_len + 1, state_size)
-            u (jnp.ndarray): inputs, (batch_size, pred_len, input_size)
-            t (int): time step
+            x (jnp.ndarray): states, shape (batch_size, pred_len + 1, state_size)
+            u (jnp.ndarray): inputs, shape (batch_size, pred_len, input_size)
 
         Returns:
-            jnp:ndarray: gradient of model with respect to the state, shape (batch_size, state_size, state_size)
+            jnp:ndarray: cost of batched trajectory, shape (batch_size, 1)
         """
         batch_size, _, state_size = x_sequence.shape
         _, pred_len, input_size = u_sequence.shape
@@ -35,16 +34,15 @@ class CostFunction(metaclass=ABCMeta):
     @partial(jax.jit, static_argnums=(0,))
     def evaluate_trajectory_cost(
         self, x_sequence: jnp.ndarray, u_sequence: jnp.ndarray
-    ):
-        """evaluate trajectory cost
+    ) -> jnp.ndarray:
+        """Evaluate trajectory cost
 
         Args:
-            x (jnp.ndarray): states, (pred_len + 1, state_size)
-            u (jnp.ndarray): inputs, (pred_len, input_size)
-            t (int): time step
+            x (jnp.ndarray): states, shape (pred_len + 1, state_size)
+            u (jnp.ndarray): inputs, shape (pred_len, input_size)
 
         Returns:
-            jnp:ndarray: gradient of model with respect to the state, shape (batch_size, state_size, state_size)
+            jnp:ndarray: cost of the given trajectory, shape (1, )
         """
         _, state_size = x_sequence.shape
         pred_len, input_size = u_sequence.shape
@@ -71,30 +69,151 @@ class CostFunction(metaclass=ABCMeta):
 
     @abstractmethod
     @partial(jax.jit, static_argnums=(0,))
-    def evaluate_stage_cost(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
-        """evaluate cost
+    def evaluate_stage_cost(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+    ) -> jnp.ndarray:
+        """Evaluate statge cost
 
         Args:
-            x (jnp.ndarray): states, (state_size, )
-            u (jnp.ndarray): inputs, (input_size, )
-            t (jnp.ndarray): time step, (1, )
+            x (jnp.ndarray): states, shape (state_size, )
+            u (jnp.ndarray): inputs, shape (input_size, )
+            t (jnp.ndarray): time step, shape (1, )
 
         Returns:
-            jnp:ndarray: stage cost (1, )
+            jnp:ndarray: stage cost, shape (1, )
         """
         raise NotImplementedError
 
     @abstractmethod
     @partial(jax.jit, static_argnums=(0,))
-    def evaluate_terminal_cost(self, x_sequence: jnp.ndarray, t: jnp.ndarray):
-        """evaluate cost
+    def evaluate_terminal_cost(
+        self, x_sequence: jnp.ndarray, t: jnp.ndarray
+    ) -> jnp.ndarray:
+        """Evaluate terminal cost
 
         Args:
             x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, (1, )
+            t (jnp.ndarray): time step, shape (1, )
 
         Returns:
-            jnp:ndarray: stage cost (1, )
+            jnp:ndarray: terminal cost, shape (1, )
+        """
+        raise NotImplementedError
+
+    @partial(jax.jit, static_argnums=(0,))
+    def stage_cx(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
+        """Gradient of stage cost with respect to the given state
+
+        Args:
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
+
+        Returns:
+            jnp:ndarray: gradient of cost with respect to the state, shape (batch_size, state_size, 1)
+        """
+        assert x.shape[0] == u.shape[0]
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        stage_cx_func = jax.vmap(
+            jax.jacfwd(self.evaluate_stage_cost, argnums=0),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return stage_cx_func(x, u, jnp_t)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def cu(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
+        """Gradient of stage cost with respect to the given input
+
+        Args:
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
+
+        Returns:
+            jnp:ndarray: gradient of cost with respect to the input, shape (batch_size, input_size, 1)
+        """
+        assert x.shape[0] == u.shape[0]
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        cu_func = jax.vmap(
+            jax.jacfwd(self.evaluate_stage_cost, argnums=1),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return cu_func(x, u, jnp_t)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def terminal_cx(self, x: jnp.ndarray, t: Union[jnp.ndarray, int]) -> jnp.ndarray:
+        """Gradient of terminal cost with respect to the given state
+
+        Args:
+            x (jnp.ndarray): states, (batch_size, state_size)
+            t (Union[jnp.ndarray, int]): time step
+
+        Returns:
+            jnp:ndarray: gradient of cost with respect to the state, shape (batch_size, state_size, 1)
+        """
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        terminal_cx_func = jax.vmap(
+            jax.jacfwd(self.evaluate_terminal_cost, argnums=0),
+            in_axes=(0, None),
+            out_axes=0,
+        )
+        return terminal_cx_func(x, jnp_t)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def stage_cxx(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
+        """Gradient of cost with respect to the given state
+
+        Args:
+            x (jnp.ndarray): states, (state_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: terminal cost, shape (1, )
+        """
+        raise NotImplementedError
+
+    @partial(jax.jit, static_argnums=(0,))
+    def terminal_cxx(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
+        """Gradient of cost with respect to the given state
+
+        Args:
+            x (jnp.ndarray): states, (state_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: terminal cost, shape (1, )
+        """
+        raise NotImplementedError
+
+    @partial(jax.jit, static_argnums=(0,))
+    def cux(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
+        """Gradient of cost with respect to the given input
+
+        Args:
+            x (jnp.ndarray): states, (state_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: terminal cost, shape (1, )
+        """
+        raise NotImplementedError
+
+    @partial(jax.jit, static_argnums=(0,))
+    def cuu(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
+        """Gradient of cost with respect to the given input
+
+        Args:
+            x (jnp.ndarray): states, (state_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: terminal cost, shape (1, )
         """
         raise NotImplementedError
 
@@ -114,16 +233,6 @@ class QuadraticCostFunction(CostFunction):
     def evaluate_stage_cost(
         self, x: jnp.ndarray, u: Optional[jnp.ndarray], t: jnp.ndarray
     ):
-        """evaluate cost
-
-        Args:
-            x (jnp.ndarray): states, (state_size, )
-            u (jnp.ndarray): inputs, (input_size, )
-            t (jnp.ndarray): time step, (1, )
-
-        Returns:
-            jnp:ndarray: stage cost (1, )
-        """
         state_cost = jnp.matmul(
             x[jnp.newaxis, :], jnp.matmul(self._Q, x[:, jnp.newaxis])
         )
@@ -137,15 +246,6 @@ class QuadraticCostFunction(CostFunction):
 
     @partial(jax.jit, static_argnums=(0,))
     def evaluate_terminal_cost(self, x: jnp.ndarray, t: jnp.ndarray):
-        """evaluate cost
-
-        Args:
-            x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, (1, )
-
-        Returns:
-            jnp:ndarray: stage cost (1, )
-        """
         return jnp.matmul(
-            x[jnp.newaxis, :], jnp.matmul(self._Qf, x[:, jnp.newaxis])
+            jnp.matmul(x[jnp.newaxis, :], self._Qf), x[:, jnp.newaxis]
         ).ravel()

@@ -2,10 +2,96 @@ import pytest
 from jax import numpy as jnp
 import numpy as np
 
-from apop.cost_function import CostFunction, QuadraticCostFunction
+from apop.cost_function import QuadraticCostFunction
+import jax
 
 
-class TestCostFunction:
+def generate_symmetric_matrix(shape):
+    key = jax.random.PRNGKey(0)
+    matrix = jax.random.normal(key, shape)
+    return (matrix + matrix.T) * 0.5
+
+
+class TestQuadraticFunc:
+    def test_evaluate_state_cost_numeric_assert_with_random_value(self):
+        state_size = 3
+        input_size = 2
+
+        drng = np.random.default_rng()
+
+        numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
+        Q = jnp.array(numpy_Q)
+
+        numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
+        Qf = jnp.array(numpy_Qf)
+
+        numpy_R = drng.random(size=(input_size, input_size)) * 0.3
+        R = jnp.array(numpy_R)
+
+        numpy_F = drng.random(size=(state_size, input_size)) * 0.3
+        F = jnp.array(numpy_F)
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        numpy_x = drng.random(size=state_size) * 0.1
+        numpy_u = drng.random(size=input_size) * 0.1
+        x = jnp.array(numpy_x)
+        u = jnp.array(numpy_u)
+
+        actual_cost = cost_func.evaluate_stage_cost(
+            x, u, jnp.ones(1)
+        ).block_until_ready()
+
+        # compute numpy costs
+        cost = (
+            np.matmul(
+                numpy_x[np.newaxis, :],
+                np.matmul(numpy_Q, numpy_x[:, np.newaxis]),
+            )
+            + np.matmul(
+                numpy_u[np.newaxis, :],
+                np.matmul(numpy_R, numpy_u[:, np.newaxis]),
+            )
+            + 2.0
+            * np.matmul(
+                numpy_x[np.newaxis, :],
+                np.matmul(numpy_F, numpy_u[:, np.newaxis]),
+            )
+        )
+        assert np.allclose(actual_cost, cost)
+
+    def test_evaluate_terminal_cost_numeric_assert_with_random_value(self):
+        state_size = 3
+        input_size = 2
+
+        drng = np.random.default_rng()
+
+        numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
+        Q = jnp.array(numpy_Q)
+
+        numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
+        Qf = jnp.array(numpy_Qf)
+
+        numpy_R = drng.random(size=(input_size, input_size)) * 0.3
+        R = jnp.array(numpy_R)
+
+        numpy_F = drng.random(size=(state_size, input_size)) * 0.3
+        F = jnp.array(numpy_F)
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        numpy_x = drng.random(size=state_size) * 0.1
+        x = jnp.array(numpy_x)
+
+        actual_cost = cost_func.evaluate_terminal_cost(
+            x, jnp.ones(1)
+        ).block_until_ready()
+
+        # compute numpy costs
+        cost = np.matmul(
+            numpy_x[np.newaxis, :],
+            np.matmul(numpy_Qf, numpy_x[:, np.newaxis]),
+        )
+        assert np.allclose(actual_cost, cost)
+
     def test_evaluate_trajectory_cost_numeric_assert_with_fixed_value(self):
         state_size = 3
         batch_size = 2
@@ -90,85 +176,75 @@ class TestCostFunction:
 
         assert np.allclose(actual_cost, costs)
 
-    class TestQuadraticFunc:
-        def test_evaluate_state_cost_numeric_assert_with_random_value(self):
-            state_size = 3
-            input_size = 2
+    def test_stage_cx_numeric_assert_with_random_value(self):
+        state_size = 3
+        input_size = 2
+        batch_size = 5
 
-            drng = np.random.default_rng()
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-            numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
-            Q = jnp.array(numpy_Q)
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
 
-            numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
-            Qf = jnp.array(numpy_Qf)
+        actual_stage_cx = cost_func.stage_cx(x, u, jnp.ones(1)).block_until_ready()
 
-            numpy_R = drng.random(size=(input_size, input_size)) * 0.3
-            R = jnp.array(numpy_R)
+        expected = 2.0 * np.matmul(
+            np.array(x)[:, np.newaxis, :], np.tile(np.array(Q), (batch_size, 1, 1))
+        ) + 2.0 * np.matmul(
+            np.tile(np.array(F), (batch_size, 1, 1)), np.array(u)[:, :, np.newaxis]
+        ).reshape(
+            batch_size, 1, state_size
+        )
+        assert np.allclose(expected, np.array(actual_stage_cx), atol=1e-3)
 
-            numpy_F = drng.random(size=(state_size, input_size)) * 0.3
-            F = jnp.array(numpy_F)
-            cost_func = QuadraticCostFunction(Q, Qf, R, F)
+    def test_stage_cu_numeric_assert_with_random_value(self):
+        state_size = 3
+        input_size = 2
+        batch_size = 5
 
-            numpy_x = drng.random(size=state_size) * 0.1
-            numpy_u = drng.random(size=input_size) * 0.1
-            x = jnp.array(numpy_x)
-            u = jnp.array(numpy_u)
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-            actual_cost = cost_func.evaluate_stage_cost(
-                x, u, jnp.ones(1)
-            ).block_until_ready()
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
 
-            # compute numpy costs
-            cost = (
-                np.matmul(
-                    numpy_x[np.newaxis, :],
-                    np.matmul(numpy_Q, numpy_x[:, np.newaxis]),
-                )
-                + np.matmul(
-                    numpy_u[np.newaxis, :],
-                    np.matmul(numpy_R, numpy_u[:, np.newaxis]),
-                )
-                + 2.0
-                * np.matmul(
-                    numpy_x[np.newaxis, :],
-                    np.matmul(numpy_F, numpy_u[:, np.newaxis]),
-                )
-            )
-            assert np.allclose(actual_cost, cost)
+        actual_stage_cu = cost_func.cu(x, u, jnp.ones(1)).block_until_ready()
 
-        def test_evaluate_terminal_cost_numeric_assert_with_random_value(self):
-            state_size = 3
-            input_size = 2
+        expected = 2.0 * np.matmul(
+            np.array(u)[:, np.newaxis, :], np.tile(np.array(R), (batch_size, 1, 1))
+        ) + 2.0 * np.matmul(
+            np.array(x)[:, np.newaxis, :], np.tile(np.array(F), (batch_size, 1, 1))
+        )
+        assert np.allclose(expected, np.array(actual_stage_cu), atol=1e-3)
 
-            drng = np.random.default_rng()
+    def test_terminal_cx_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
 
-            numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
-            Q = jnp.array(numpy_Q)
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-            numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
-            Qf = jnp.array(numpy_Qf)
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        actual_terminal_cx = cost_func.terminal_cx(x, jnp.ones(1)).block_until_ready()
 
-            numpy_R = drng.random(size=(input_size, input_size)) * 0.3
-            R = jnp.array(numpy_R)
-
-            numpy_F = drng.random(size=(state_size, input_size)) * 0.3
-            F = jnp.array(numpy_F)
-            cost_func = QuadraticCostFunction(Q, Qf, R, F)
-
-            numpy_x = drng.random(size=state_size) * 0.1
-            x = jnp.array(numpy_x)
-
-            actual_cost = cost_func.evaluate_terminal_cost(
-                x, jnp.ones(1)
-            ).block_until_ready()
-
-            # compute numpy costs
-            cost = np.matmul(
-                numpy_x[np.newaxis, :],
-                np.matmul(numpy_Qf, numpy_x[:, np.newaxis]),
-            )
-            assert np.allclose(actual_cost, cost)
+        expected = 2.0 * np.matmul(
+            np.array(x[:, np.newaxis, :]), np.tile(np.array(Qf), (batch_size, 1, 1))
+        )
+        assert np.allclose(expected, np.array(actual_terminal_cx), atol=1e-3)
 
 
 if __name__ == "__main__":
