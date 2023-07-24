@@ -112,7 +112,7 @@ class CostFunction(metaclass=ABCMeta):
             t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: gradient of cost with respect to the state, shape (batch_size, state_size, 1)
+            jnp:ndarray: gradient of stage cost with respect to the state, shape (batch_size, state_size, 1)
         """
         assert x.shape[0] == u.shape[0]
         jnp_t = jnp.ones(1, dtype=jnp.int32) * t
@@ -155,7 +155,7 @@ class CostFunction(metaclass=ABCMeta):
             t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: gradient of cost with respect to the state, shape (batch_size, state_size, 1)
+            jnp:ndarray: gradient of terminal cost with respect to the state, shape (batch_size, state_size, 1)
         """
         jnp_t = jnp.ones(1, dtype=jnp.int32) * t
         terminal_cx_func = jax.vmap(
@@ -166,56 +166,121 @@ class CostFunction(metaclass=ABCMeta):
         return terminal_cx_func(x, jnp_t)
 
     @partial(jax.jit, static_argnums=(0,))
-    def stage_cxx(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
+    def stage_cxx(self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]):
         """Gradient of cost with respect to the given state
 
         Args:
-            x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, shape (1, )
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: terminal cost, shape (1, )
+            jnp:ndarray: hessian of cost with respect to the state,
+                shape (batch_size, state_size, state_size)
         """
-        raise NotImplementedError
+        # See: https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
+        # jacfwd(jacrev(f)) is typically the most efficient
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        stage_cxx_func = jax.vmap(
+            jax.jacfwd(jax.jacrev(self.evaluate_stage_cost, argnums=0), argnums=0),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return stage_cxx_func(x, u, jnp_t)[:, 0, :, :]  # without unused dim
 
     @partial(jax.jit, static_argnums=(0,))
-    def terminal_cxx(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
-        """Gradient of cost with respect to the given state
+    def terminal_cxx(self, x: jnp.ndarray, t: Union[jnp.ndarray, int]):
+        """Hessian of cost with respect to the given state
 
         Args:
-            x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, shape (1, )
+            x (jnp.ndarray): states, (batch_size, state_size)
+            t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: terminal cost, shape (1, )
+            jnp:ndarray: hessian of terminal cost with respect to the state,
+                shape (batch_size, state_size, state_size)
         """
-        raise NotImplementedError
+        # See: https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
+        # jacfwd(jacrev(f)) is typically the most efficient
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        terminal_cxx_func = jax.vmap(
+            jax.jacfwd(jax.jacrev(self.evaluate_terminal_cost, argnums=0), argnums=0),
+            in_axes=(0, None),
+            out_axes=0,
+        )
+        return terminal_cxx_func(x, jnp_t)[:, 0, :, :]  # without unused dim
 
     @partial(jax.jit, static_argnums=(0,))
-    def cux(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
-        """Gradient of cost with respect to the given input
+    def cux(self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]):
+        """Hessian of cost with respect to the given input and state
 
         Args:
-            x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, shape (1, )
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: terminal cost, shape (1, )
+            jnp:ndarray: hessian of terminal cost cost
+                with respect to the input and state,
+                shape (batch_size, input_size, state_size)
         """
-        raise NotImplementedError
+        # See: https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
+        # jacfwd(jacrev(f)) is typically the most efficient
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        cux_func = jax.vmap(
+            jax.jacfwd(jax.jacrev(self.evaluate_stage_cost, argnums=1), argnums=0),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return cux_func(x, u, jnp_t)[:, 0, :, :]  # without unused dim
 
     @partial(jax.jit, static_argnums=(0,))
-    def cuu(self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray):
-        """Gradient of cost with respect to the given input
+    def cxu(self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]):
+        """Hessian of cost with respect to the given input and state
 
         Args:
-            x (jnp.ndarray): states, (state_size, )
-            t (jnp.ndarray): time step, shape (1, )
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
 
         Returns:
-            jnp:ndarray: terminal cost, shape (1, )
+            jnp:ndarray: hessian of terminal cost
+                with respect to the state and input,
+                shape (batch_size, state_size, input_size)
         """
-        raise NotImplementedError
+        # See: https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
+        # jacfwd(jacrev(f)) is typically the most efficient
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        cux_func = jax.vmap(
+            jax.jacfwd(jax.jacrev(self.evaluate_stage_cost, argnums=0), argnums=1),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return cux_func(x, u, jnp_t)[:, 0, :, :]  # without unused dim
+
+    @partial(jax.jit, static_argnums=(0,))
+    def cuu(self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]):
+        """Hessian of cost with respect to the given input
+
+        Args:
+            x (jnp.ndarray): states, (batch_size, state_size)
+            u (jnp.ndarray): inputs, (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step
+
+        Returns:
+            jnp:ndarray: hessian of terminal cost
+                with respect to the state and input,
+                shape (batch_size, input_size, input_size)
+        """
+        # See: https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
+        # jacfwd(jacrev(f)) is typically the most efficient
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        cuu_func = jax.vmap(
+            jax.jacfwd(jax.jacrev(self.evaluate_stage_cost, argnums=1), argnums=1),
+            in_axes=(0, 0, None),
+            out_axes=0,
+        )
+        return cuu_func(x, u, jnp_t)[:, 0, :, :]  # without unused dim
 
 
 class QuadraticCostFunction(CostFunction):

@@ -246,6 +246,100 @@ class TestQuadraticFunc:
         )
         assert np.allclose(expected, np.array(actual_terminal_cx), atol=1e-3)
 
+    def test_stage_cxx_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
+
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
+        actual_stage_cxx = cost_func.stage_cxx(x, u, jnp.ones(1)).block_until_ready()
+
+        expected = 2.0 * np.tile(Q, (batch_size, 1, 1))
+        assert np.allclose(expected, np.array(actual_stage_cxx), atol=1e-2)
+
+    def test_terminal_cxx_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
+
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        actual_terminal_cxx = cost_func.terminal_cxx(x, jnp.ones(1)).block_until_ready()
+
+        expected = 2.0 * np.tile(Qf, (batch_size, 1, 1))
+        assert np.allclose(expected, np.array(actual_terminal_cxx), atol=1e-2)
+
+    def test_cux_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
+
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
+        actual_cux = cost_func.cux(x, u, jnp.ones(1)).block_until_ready()
+
+        expected = 2.0 * np.tile(F.T, (batch_size, 1, 1))
+        assert np.allclose(expected, np.array(actual_cux), atol=1e-2)
+
+    def test_cxu_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
+
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
+        actual_cxu = cost_func.cxu(x, u, jnp.ones(1)).block_until_ready()
+
+        expected = 2.0 * np.tile(F, (batch_size, 1, 1))
+        assert np.allclose(expected, np.array(actual_cxu), atol=1e-2)
+
+    def test_cuu_numeric_assert_with_random_value(self):
+        state_size = 2
+        input_size = 5
+        batch_size = 10
+
+        key = jax.random.PRNGKey(0)
+        Q = generate_symmetric_matrix((state_size, state_size))
+        Qf = generate_symmetric_matrix((state_size, state_size))
+        R = generate_symmetric_matrix((input_size, input_size))
+        F = jax.random.normal(key, (state_size, input_size))
+        cost_func = QuadraticCostFunction(Q, Qf, R, F)
+
+        x = jax.random.uniform(key, (batch_size, state_size)) * 0.1
+        u = jax.random.uniform(key, (batch_size, input_size)) * 0.1
+        actual_cuu = cost_func.cuu(x, u, jnp.ones(1)).block_until_ready()
+
+        expected = 2.0 * np.tile(R, (batch_size, 1, 1))
+        assert np.allclose(expected, np.array(actual_cuu), atol=1e-2)
+
 
 if __name__ == "__main__":
     pytest.main()
