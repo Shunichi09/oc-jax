@@ -2,10 +2,8 @@ import itertools
 import re
 from typing import Dict, List, Tuple
 
-
 import mujoco
 import numpy as np
-
 
 from apop.utils.randoms import rand_min_max
 from apop.utils.transformations import (

@@ -1,9 +1,10 @@
-import numpy as np
-import jax
-from jax import numpy as jnp
-from functools import partial
 from abc import ABCMeta, abstractmethod
+from functools import partial
 from typing import Union
+
+import jax
+import numpy as np
+from jax import numpy as jnp
 
 
 class TransitionModel(metaclass=ABCMeta):

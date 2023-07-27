@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
-import jax
-from jax import numpy as jnp
 from functools import partial
 from typing import Optional, Union
+
+import jax
+from jax import numpy as jnp
 
 
 class CostFunction(metaclass=ABCMeta):

@@ -2,11 +2,8 @@ import os
 import pathlib
 from typing import Iterable, Optional, Tuple, Union, cast
 
-
 import numpy as np
 import open3d as o3d
-
-
 from svlr_sim.utils.randoms import rand_min_max
 from svlr_sim.utils.transformations import (
     create_transformation_matrix,

@@ -1,15 +1,13 @@
-from typing import Any, Optional, Dict
+import os
+from typing import Any, Dict, Optional
+
+import mujoco
+import numpy as np
 from gymnasium.spaces import Box
 
 from apop.envs.mujoco.environment import ApopMujocoEnv
-from apop.envs.mujoco.environment_utils import (
-    segmentation_object_id_map,
-)
+from apop.envs.mujoco.environment_utils import segmentation_object_id_map
 from apop.utils.randoms import rand_min_max
-
-import os
-import numpy as np
-import mujoco
 
 
 class Arm2dReachingTargetFixedEnv(ApopMujocoEnv):
