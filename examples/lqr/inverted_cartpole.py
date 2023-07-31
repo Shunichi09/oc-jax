@@ -7,7 +7,7 @@ from jax import numpy as jnp
 from gymnasium.wrappers.record_video import RecordVideo
 
 import apop
-from apop.controllers.lgr import LinearQuadraticRegulator
+from apop.controllers.lqr import LinearQuadraticRegulator
 from apop.cost_function import QuadraticCostFunction
 from apop.transition_models.gymnasium.cartpole import LinearInvertedCartPoleModel
 
