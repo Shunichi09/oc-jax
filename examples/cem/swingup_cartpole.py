@@ -8,8 +8,8 @@ from gymnasium.wrappers.record_video import RecordVideo
 
 import apop
 from apop.controllers.cem import TruncatedGaussianCrossEntropyMethod
-from apop.cost_function import QuadraticCostFunction
-from apop.transition_models.gymnasium.cartpole import LinearInvertedCartPoleModel
+from apop.cost_functions.classic_control.cartpole import CartPoleCostFunction
+from apop.transition_models.classic_control.cartpole import SwingUpCartPoleModel
 
 # pip install gymnasium[classic-control]
 
@@ -18,29 +18,27 @@ def run(args):
     # build env
     if args.record_video:
         env = RecordVideo(
-            gymnasium.make("ContinuousInvertedCartPole-v0", render_mode="rgb_array"),
+            gymnasium.make("ContinuousSwingUpCartPole-v0", render_mode="rgb_array"),
             video_folder=args.video_path,
         )
     else:
-        env = gymnasium.make("ContinuousInvertedCartPole-v0", render_mode="human")
+        env = gymnasium.make("ContinuousSwingUpCartPole-v0", render_mode="human")
 
     # build controller
-    cost_function = QuadraticCostFunction(
-        jnp.eye(4) * 10, jnp.eye(4) * 10, jnp.eye(1) * 0.1, jnp.zeros((4, 1))
-    )
-    transition_model = LinearInvertedCartPoleModel()
+    cost_function = CartPoleCostFunction()
+    transition_model = SwingUpCartPoleModel()
     T = 50
     controller = TruncatedGaussianCrossEntropyMethod(
         transition_model,
         cost_function,
         T,
-        num_iterations=10,
+        num_iterations=25,
         sample_size=1000,
-        num_elites=25,
+        num_elites=50,
         alpha=0.1,
-        initial_variance=np.array([10]),
-        upper_bound=np.array([5]),
-        lower_bound=np.array([-5]),
+        initial_variance=np.array([100.0]),
+        upper_bound=np.array([20]),
+        lower_bound=np.array([-20]),
     )
 
     # run control
