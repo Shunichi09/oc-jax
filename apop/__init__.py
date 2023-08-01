@@ -13,3 +13,9 @@ register(
     entry_point="apop.envs.gymnasium.cartpole:ContinuousInvertedCartPoleEnv",
     max_episode_steps=500,
 )
+
+register(
+    id="ContinuousSwingUpCartPole-v0",
+    entry_point="apop.envs.gymnasium.cartpole:ContinuousSwingUpCartPoleEnv",
+    max_episode_steps=500,
+)
