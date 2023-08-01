@@ -40,7 +40,7 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         self._alpha = alpha
         self._jax_random_key = jax_random_key
 
-    # @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnums=(0,))
     def control(
         self,
         curr_x: jnp.ndarray,
@@ -53,8 +53,8 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
 
         for i in range(self._num_iterations):
             # variance computation
-            lower_bound_mean = mean - self._lower_bound
-            mean_upper_bound = self._upper_bound - mean
+            lower_bound_mean = mean - self._lower_bound  # shape (T, input_size)
+            mean_upper_bound = self._upper_bound - mean  # shape (T, input_size)
             # get minimum variance
             constrained_variance = jnp.minimum(
                 jnp.minimum(
