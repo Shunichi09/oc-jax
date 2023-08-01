@@ -104,3 +104,99 @@ class ContinuousInvertedCartPoleEnv(CartPoleEnv):
             self.render()
 
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
+
+
+class ContinuousSwingUpCartPoleEnv(CartPoleEnv):
+    """Continuous CartPole Environment."""
+
+    def __init__(self, render_mode: Optional[str] = None):
+        super().__init__(render_mode)
+        self.action_space = spaces.Box(
+            np.array([-20.0]), np.array([20.0]), dtype=np.float32
+        )
+        # Overwrite to handle swing up
+        self.x_threshold = 2.4
+        self.input_noise = 1.0
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict] = None,
+    ):
+        super().reset(seed=seed)
+        self.state = self.np_random.uniform(
+            low=[-0.01, 0.0, np.pi, 0.0], high=[0.01, 0.0, np.pi, 0.0], size=(4,)
+        )
+        self.steps_beyond_terminated = None
+
+        if self.render_mode == "human":
+            self.render()
+        return np.array(self.state, dtype=np.float32), {}
+
+    def step(self, action):
+        assert self.action_space.contains(
+            action
+        ), f"{action!r} ({type(action)}) invalid"
+        assert self.state is not None, "Call reset before using step method."
+        x, x_dot, theta, theta_dot = self.state
+
+        force = action[0] + drng.normal() * self.input_noise
+        costheta = math.cos(theta)
+        sintheta = math.sin(theta)
+
+        # For the interested reader:
+        # https://coneural.org/florian/papers/05_cart_pole.pdf
+        temp = (
+            force + self.polemass_length * theta_dot**2 * sintheta
+        ) / self.total_mass
+        thetaacc = (self.gravity * sintheta - costheta * temp) / (
+            self.length * (4.0 / 3.0 - self.masspole * costheta**2 / self.total_mass)
+        )
+        xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
+
+        if self.kinematics_integrator == "euler":
+            x = x + self.tau * x_dot
+            x_dot = x_dot + self.tau * xacc
+            theta = theta + self.tau * theta_dot
+            theta_dot = theta_dot + self.tau * thetaacc
+        else:  # semi-implicit euler
+            x_dot = x_dot + self.tau * xacc
+            x = x + self.tau * x_dot
+            theta_dot = theta_dot + self.tau * thetaacc
+            theta = theta + self.tau * theta_dot
+
+        self.state = (x, x_dot, theta, theta_dot)
+
+        terminated = bool(x < -self.x_threshold or x > self.x_threshold)
+
+        cost = 0.0
+        cost += 0.1 * np.sum(action**2)
+        cost += (
+            6.0 * self.state[0] ** 2
+            + 12.0 * (np.cos(self.state[2] - np.pi) + 1.0) ** 2
+            + 0.1 * self.state[1] ** 2
+            + 0.1 * self.state[3] ** 2
+        )
+
+        if not terminated:
+            reward = -cost
+        elif self.steps_beyond_terminated is None:
+            # Pole just fell!
+            self.steps_beyond_terminated = 0
+            reward = -cost
+        else:
+            if self.steps_beyond_terminated == 0:
+                logger.warn(
+                    "You are calling 'step()' even though this "
+                    "environment has already returned terminated = True. You "
+                    "should always call 'reset()' once you receive 'terminated = "
+                    "True' -- any further steps are undefined behavior."
+                )
+            self.steps_beyond_terminated += 1
+            reward = -cost
+
+        if self.render_mode == "human":
+            self.render()
+
+        return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
