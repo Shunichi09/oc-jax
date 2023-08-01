@@ -14,6 +14,7 @@ isort
 natsort
 black
 gymnasium
+gymnasium[classic-control]
 imageio
 moviepy
 mujoco
