@@ -299,6 +299,16 @@ class QuadraticCostFunction(CostFunction):
     def evaluate_stage_cost(
         self, x: jnp.ndarray, u: Optional[jnp.ndarray], t: jnp.ndarray
     ):
+        """Evaluate statge cost
+
+        Args:
+            x (jnp.ndarray): states, shape (state_size, )
+            u (jnp.ndarray): inputs, shape (input_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: stage cost, shape (1, )
+        """
         state_cost = jnp.matmul(
             x[jnp.newaxis, :], jnp.matmul(self._Q, x[:, jnp.newaxis])
         )
@@ -312,6 +322,15 @@ class QuadraticCostFunction(CostFunction):
 
     @partial(jax.jit, static_argnums=(0,))
     def evaluate_terminal_cost(self, x: jnp.ndarray, t: jnp.ndarray):
+        """Evaluate terminal cost
+
+        Args:
+            x (jnp.ndarray): states, (state_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            jnp:ndarray: terminal cost, shape (1, )
+        """
         return jnp.matmul(
             jnp.matmul(x[jnp.newaxis, :], self._Qf), x[:, jnp.newaxis]
         ).ravel()
