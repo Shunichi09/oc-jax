@@ -3,11 +3,11 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 import numpy as np
-import matplotlib.pyplot as plt
 
 from apop.controller import Controller
 from apop.cost_function import CostFunction
 from apop.transition_model import TransitionModel
+from apop.random import new_key
 
 
 class UniformRandomShootingMethod(Controller):
@@ -42,9 +42,9 @@ class UniformRandomShootingMethod(Controller):
         tiled_curr_x = jnp.tile(curr_x, (self._sample_size, 1))
 
         # sample inputs sequence
+        self._jax_random_key = new_key(self._jax_random_key)
         noise = jax.random.uniform(
-            self._jax_random_key,
-            shape=(self._sample_size, self._T, input_size),
+            self._jax_random_key, shape=(self._sample_size, self._T, input_size)
         )
         # shape (batch_size, T, input_size)
         u_sequence_samples = (
