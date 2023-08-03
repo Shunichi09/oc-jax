@@ -38,7 +38,7 @@ def run(args):
         sample_size=1000,
         num_elites=25,
         alpha=0.1,
-        initial_variance=np.array([10]),
+        initial_diag_variance=np.array([10]),
         upper_bound=np.array([5]),
         lower_bound=np.array([-5]),
     )
@@ -63,6 +63,10 @@ def run(args):
         state = next_state
         env.render()
         total_score += reward
+        # forward inputs
+        optimized_u_sequence = jnp.concatenate(
+            [optimized_u_sequence[1:], jnp.zeros((1, 1))], axis=0
+        )
         print(f"total_score = {total_score}")
 
     env.close()

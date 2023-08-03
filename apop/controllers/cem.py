@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from apop.controller import Controller
 from apop.cost_function import CostFunction
 from apop.transition_model import TransitionModel
+from apop.random import new_key
 
 
 class TruncatedGaussianCrossEntropyMethod(Controller):
@@ -24,7 +25,7 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         sample_size: int,
         num_elites: int,
         alpha: float,  # larger than use old mean
-        initial_variance: np.ndarray,  # shape (state_size)
+        initial_diag_variance: np.ndarray,  # shape (input_size)
         upper_bound: np.ndarray,  # shape (state_size)
         lower_bound: np.ndarray,  # shape (state_size)
         jax_random_key: jax.random.KeyArray = jax.random.PRNGKey(0),
@@ -33,10 +34,11 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         self._T = T
         self._num_iterations = num_iterations
         self._num_elites = num_elites
-        self._initial_variance = jnp.array(initial_variance)
+        self._initial_diag_variance = jnp.array(initial_diag_variance)
         self._sample_size = sample_size
         self._upper_bound = jnp.array(upper_bound)
         self._lower_bound = jnp.array(lower_bound)
+        self._input_size = initial_diag_variance.shape[0]
         self._alpha = alpha
         self._jax_random_key = jax_random_key
 
@@ -47,9 +49,11 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         initial_u_sequence: jnp.ndarray,
     ) -> jnp.ndarray:
         _, input_size = initial_u_sequence.shape
+        assert input_size == self._input_size
+
         tiled_curr_x = jnp.tile(curr_x, (self._sample_size, 1))
         mean = initial_u_sequence  # shape (T, input_size)
-        variance = self._initial_variance  # shape (T, input_size)
+        variance = self._initial_diag_variance  # shape (T, input_size)
 
         for i in range(self._num_iterations):
             # variance computation
@@ -64,11 +68,12 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
                 variance,
             )
             # sample inputs sequence
+            self._jax_random_key = new_key(self._jax_random_key)
             noise = jax.random.truncated_normal(
                 self._jax_random_key,
                 lower=-2.0,
                 upper=2.0,
-                shape=(self._sample_size, self._T, input_size),
+                shape=(self._sample_size, self._T, self._input_size),
             )
             # shape (batch_size, T, input_size)
             u_sequence_samples = (
