@@ -3,8 +3,8 @@ import os
 
 import gymnasium
 import numpy as np
-from jax import numpy as jnp
 from gymnasium.wrappers.record_video import RecordVideo
+from jax import numpy as jnp
 
 import apop
 from apop.controllers.mppi import MPPI
@@ -51,12 +51,12 @@ def run(args):
     optimized_u_sequence = jnp.zeros((T, 1))
     total_score = 0.0
     while not (terminated or truncated):
-        if args.apply_control:
+        if args.random_action:
+            action = env.action_space.sample()
+        else:
             optimized_u_sequence = controller.control(
                 jnp.array(state), optimized_u_sequence
             )
-        else:
-            action = env.action_space.sample()
 
         action = np.array(optimized_u_sequence[0])
         next_state, reward, terminated, truncated, info = env.step(action)
@@ -71,7 +71,7 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--record_video", action="store_true")
-    parser.add_argument("--apply_control", action="store_true")
+    parser.add_argument("--random_action", action="store_true")
     default_path = os.path.join(os.path.dirname(__file__), "video")
     parser.add_argument("--video_path", type=str, default=default_path)
     args = parser.parse_args()
