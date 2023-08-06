@@ -1,11 +1,11 @@
+from functools import partial
 from typing import Optional
-from apop.cost_function import CostFunction
 
 import jax
-from jax import numpy as jnp
-from functools import partial
-
 import numpy as np
+from jax import numpy as jnp
+
+from apop.cost_function import CostFunction
 
 
 class CartPoleCostFunction(CostFunction):

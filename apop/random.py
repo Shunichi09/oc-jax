@@ -1,6 +1,5 @@
-import numpy as np
-
 import jax
+import numpy as np
 
 drng = np.random.default_rng()
 

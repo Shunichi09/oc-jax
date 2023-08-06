@@ -1,14 +1,14 @@
 from functools import partial
 
 import jax
-from jax import numpy as jnp
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from jax import numpy as jnp
 
 from apop.controller import Controller
 from apop.cost_function import CostFunction
-from apop.transition_model import TransitionModel
 from apop.random import new_key
+from apop.transition_model import TransitionModel
 
 
 class MPPI(Controller):
