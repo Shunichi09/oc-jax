@@ -285,7 +285,14 @@ class CostFunction(metaclass=ABCMeta):
 
 
 class QuadraticCostFunction(CostFunction):
-    def __init__(self, Q: jnp.ndarray, Qf: jnp.ndarray, R: jnp.ndarray, F: jnp.ndarray):
+    def __init__(
+        self,
+        Q: jnp.ndarray,
+        Qf: jnp.ndarray,
+        R: jnp.ndarray,
+        F: jnp.ndarray,
+        target_state: Optional[jnp.ndarray] = None,
+    ):
         super().__init__()
         assert Q.shape == Qf.shape
         assert F.shape[0] == Q.shape[0]
@@ -294,6 +301,10 @@ class QuadraticCostFunction(CostFunction):
         self._Qf = Qf
         self._R = R
         self._F = F
+        self._target_state = (
+            target_state if target_state is not None else jnp.zeros((Q.shape[0]))
+        )
+        assert Q.shape[0] == self._target_state.shape[0]
 
     @partial(jax.jit, static_argnums=(0,))
     def evaluate_stage_cost(
@@ -310,10 +321,12 @@ class QuadraticCostFunction(CostFunction):
             jnp:ndarray: stage cost, shape (1, )
         """
         state_cost = jnp.matmul(
-            x[jnp.newaxis, :], jnp.matmul(self._Q, x[:, jnp.newaxis])
+            (x - self._target_state)[jnp.newaxis, :],
+            jnp.matmul(self._Q, (x - self._target_state)[:, jnp.newaxis]),
         )
         cross_cost = 2.0 * jnp.matmul(
-            x[jnp.newaxis, :], jnp.matmul(self._F, u[:, jnp.newaxis])
+            (x - self._target_state)[jnp.newaxis, :],
+            jnp.matmul(self._F, u[:, jnp.newaxis]),
         )
         input_cost = jnp.matmul(
             u[jnp.newaxis, :], jnp.matmul(self._R, u[:, jnp.newaxis])
@@ -332,5 +345,6 @@ class QuadraticCostFunction(CostFunction):
             jnp:ndarray: terminal cost, shape (1, )
         """
         return jnp.matmul(
-            jnp.matmul(x[jnp.newaxis, :], self._Qf), x[:, jnp.newaxis]
+            jnp.matmul((x - self._target_state)[jnp.newaxis, :], self._Qf),
+            (x - self._target_state)[:, jnp.newaxis],
         ).ravel()
