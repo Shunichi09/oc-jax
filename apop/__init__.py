@@ -10,12 +10,24 @@ register(
 
 register(
     id="ContinuousInvertedCartPole-v0",
-    entry_point="apop.envs.gymnasium.cartpole:ContinuousInvertedCartPoleEnv",
+    entry_point="apop.envs.classic_control.cartpole:ContinuousInvertedCartPoleEnv",
     max_episode_steps=500,
 )
 
 register(
     id="ContinuousSwingUpCartPole-v0",
-    entry_point="apop.envs.gymnasium.cartpole:ContinuousSwingUpCartPoleEnv",
+    entry_point="apop.envs.classic_control.cartpole:ContinuousSwingUpCartPoleEnv",
+    max_episode_steps=500,
+)
+
+register(
+    id="ContinuousAcrobot-v0",
+    entry_point="apop.envs.classic_control.acrobot:ContinuousAcrobotEnv",
+    max_episode_steps=1000,
+)
+
+register(
+    id="AnglePendulum-v0",
+    entry_point="apop.envs.classic_control.pendulum:AnglePendulumEnv",
     max_episode_steps=500,
 )
