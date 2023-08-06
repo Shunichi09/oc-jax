@@ -21,3 +21,4 @@ mujoco
 open3d
 jaxlib==0.4.6
 jax[cuda11_pip]
+loguru
