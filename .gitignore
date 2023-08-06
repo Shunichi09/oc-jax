@@ -1,3 +1,10 @@
+*.gif
+*.png
+*.json
+*.mp4
+**/legacy/**
+MEMO.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
