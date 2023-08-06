@@ -1,6 +1,7 @@
-from jax import numpy as jnp
-import jax
 from functools import partial
+
+import jax
+from jax import numpy as jnp
 
 from apop.transition_model import LinearTransitionModel, TransitionModel
 
