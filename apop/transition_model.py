@@ -3,8 +3,9 @@ from functools import partial
 from typing import Union
 
 import jax
-import numpy as np
 from jax import numpy as jnp
+
+from apop.distribution import Distribution
 
 
 class TransitionModel(metaclass=ABCMeta):
@@ -64,11 +65,48 @@ class TransitionModel(metaclass=ABCMeta):
 
         return pred_x_sequence
 
+    @partial(jax.jit, static_argnums=(0,))
+    def predict_batched_next_state(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
+    ) -> jnp.ndarray:
+        """predict batched next state
+
+        Args:
+            x (jnp.ndarray): states, shape (batch_size, state_size )
+            u (jnp.ndarray): input, shape (batch_size, input_size)
+            t (Union[jnp.ndarray, int]): time step, shape (1, )
+
+        Returns:
+            next_x (jnp.ndarray): next state, shape (batch_size, state_size)
+        """
+        jnp_t = jnp.ones(1, dtype=jnp.int32) * t
+        batched_pred_next_state_func = jax.vmap(
+            self.predict_next_state, in_axes=(0, 0, None), out_axes=0
+        )
+        return batched_pred_next_state_func(x, u, jnp_t)
+
     @abstractmethod
     @partial(jax.jit, static_argnums=(0,))
     def predict_next_state(
         self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
     ) -> jnp.ndarray:
+        """predict next state
+
+        Args:
+            x (jnp.ndarray): states, shape (state_size, )
+            u (jnp.ndarray): input, shape (input_size, )
+            t (jnp.ndarray): time step, shape (1, )
+
+        Returns:
+            next_x (jnp.ndarray): next state, shape (state_size, )
+        """
+        raise NotImplementedError("Implement the model")
+
+    @abstractmethod
+    @partial(jax.jit, static_argnums=(0,))
+    def predict_next_state_distribution(
+        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+    ) -> Distribution:
         """predict next state
 
         Args:
