@@ -16,10 +16,10 @@ class Filter(metaclass=ABCMeta):
         self._transition_model = transition_model
 
     @abstractmethod
-    def process(
+    @partial(jax.jit, static_argnums=(0,))
+    def estimate(
         self,
         curr_y: jnp.ndarray,
         curr_u: jnp.ndarray,
-        visualization_func: Optional[Callable[[jnp.ndarray, jnp.ndarray], None]] = None,
     ) -> jnp.ndarray:
         raise NotImplementedError
