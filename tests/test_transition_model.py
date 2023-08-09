@@ -69,6 +69,29 @@ class TestLinearTransitionModel:
                     next_x.flatten(), actual_batched_pred_x_sequence[i, t + 1]
                 )
 
+    def test_batched_next_state_numeric_assert_random_value(self):
+        numpy_A = np.array([[0.5, 0.2, 0.1], [-0.3, 0.25, -0.1], [0.0, 0.9, 0.01]])
+        numpy_B = np.array([[0.21, 0.31], [-0.14, 0.015], [0.12, 0.01]])
+        jax_A = jnp.array(numpy_A)
+        jax_B = jnp.array(numpy_B)
+
+        linear_model = LinearTransitionModel(jax_A, jax_B)
+        drng = np.random.default_rng()
+        batch_size = 10
+        curr_x = drng.random(size=(batch_size, 3)) * 0.1
+        u = drng.random(size=(batch_size, 2)) * 0.1
+        actual_pred_x = np.array(
+            linear_model.predict_batched_next_state(
+                jnp.array(curr_x), jnp.array(u), 1
+            ).block_until_ready()
+        )
+
+        for i in range(batch_size):
+            next_x = np.matmul(numpy_A, curr_x[i][:, np.newaxis]) + np.matmul(
+                numpy_B, u[i][:, np.newaxis]
+            )
+            assert np.allclose(next_x.flatten(), actual_pred_x[i])
+
     def test_predict_trajectory_numeric_assert_random_value(self):
         numpy_A = np.array([[0.5, 0.2, 0.1], [-0.3, 0.25, -0.1], [0.0, 0.9, 0.01]])
         numpy_B = np.array([[0.21, 0.31], [-0.14, 0.015], [0.12, 0.01]])
