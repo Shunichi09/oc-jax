@@ -5,8 +5,6 @@ import gymnasium
 import numpy as np
 from gymnasium.wrappers.record_video import RecordVideo
 
-# pip install gymnasium[classic-control]
-from jax import config
 from jax import numpy as jnp
 
 import apop
@@ -14,8 +12,7 @@ from apop.controllers.mppi import MPPI
 from apop.cost_functions.classic_control.acrobot import AcrobotCostFunction
 from apop.transition_models.classic_control.acrobot import AcrobotModel
 
-config.update("jax_debug_nans", True)
-# config.update("jax_disable_jit", True)
+# pip install gymnasium[classic-control]
 
 
 def run(args):
