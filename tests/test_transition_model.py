@@ -5,7 +5,7 @@ import numpy as np
 from apop.transition_model import LinearTransitionModel
 
 
-class TestTransitionModel:
+class TestLinearTransitionModel:
     def test_predict_batched_trajectory_numeric_assert_fixed_value(self):
         numpy_A = np.eye(3)
         numpy_B = np.ones((3, 2))
