@@ -8,6 +8,13 @@ register(
     max_episode_steps=5000,
 )
 
+
+register(
+    id="Ball2dTracking-v0",
+    entry_point="apop.envs.mujoco.ball2d_moving:Ball2dTrackingEnv",
+    max_episode_steps=1000,
+)
+
 register(
     id="ContinuousInvertedCartPole-v0",
     entry_point="apop.envs.classic_control.cartpole:ContinuousInvertedCartPoleEnv",
