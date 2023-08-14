@@ -8,8 +8,8 @@ from jax import numpy as jnp
 
 import apop
 from apop.controllers.lqr import LinearQuadraticRegulator
-from apop.cost_function import QuadraticCostFunction
-from apop.transition_models.gymnasium.cartpole import LinearInvertedCartPoleModel
+from apop.cost_functions.basic.quadratic import QuadraticCostFunction
+from apop.transition_models.classic_control.cartpole import LinearInvertedCartPoleModel
 
 # pip install gymnasium[classic-control]
 

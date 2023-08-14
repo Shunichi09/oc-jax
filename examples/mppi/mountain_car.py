@@ -4,13 +4,11 @@ import os
 import gymnasium
 import numpy as np
 from gymnasium.wrappers.record_video import RecordVideo
-
-# pip install gymnasium[classic-control]
 from jax import numpy as jnp
 
 import apop
 from apop.controllers.mppi import MPPI
-from apop.cost_function import QuadraticCostFunction
+from apop.cost_functions.basic.quadratic import QuadraticCostFunction
 from apop.transition_models.classic_control.mountain_car import MountainCarModel
 
 

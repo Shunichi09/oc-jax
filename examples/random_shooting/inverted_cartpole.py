@@ -8,7 +8,7 @@ from jax import numpy as jnp
 
 import apop
 from apop.controllers.random_shooting import UniformRandomShootingMethod
-from apop.cost_function import QuadraticCostFunction
+from apop.cost_functions.basic.quadratic import QuadraticCostFunction
 from apop.transition_models.classic_control.cartpole import LinearInvertedCartPoleModel
 
 # pip install gymnasium[classic-control]
