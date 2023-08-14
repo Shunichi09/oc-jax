@@ -3,10 +3,10 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from apop.transition_model import TransitionModel
+from apop.transition_model import DeterministicTransitionModel
 
 
-class MountainCarModel(TransitionModel):
+class MountainCarModel(DeterministicTransitionModel):
     def __init__(
         self,
         u_max: float = 1.0,

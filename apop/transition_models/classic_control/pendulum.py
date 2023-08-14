@@ -3,10 +3,10 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from apop.transition_model import TransitionModel
+from apop.transition_models.basic.linear import DeterministicTransitionModel
 
 
-class PendulumModel(TransitionModel):
+class PendulumModel(DeterministicTransitionModel):
     def __init__(
         self,
         max_speed: float = 8.0,

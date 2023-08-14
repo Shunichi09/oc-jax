@@ -4,11 +4,11 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from apop.transition_model import TransitionModel
+from apop.transition_model import DeterministicTransitionModel
 from apop.utils.jax_functions import fit_angle_in_range
 
 
-class AcrobotModel(TransitionModel):
+class AcrobotModel(DeterministicTransitionModel):
     def __init__(
         self,
         link_mass_1: float = 1.0,

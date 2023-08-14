@@ -102,23 +102,6 @@ class TransitionModel(metaclass=ABCMeta):
         """
         raise NotImplementedError("Implement the model")
 
-    @abstractmethod
-    @partial(jax.jit, static_argnums=(0,))
-    def predict_next_state_distribution(
-        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
-    ) -> Distribution:
-        """predict next state
-
-        Args:
-            x (jnp.ndarray): states, shape (state_size, )
-            u (jnp.ndarray): input, shape (input_size, )
-            t (jnp.ndarray): time step, shape (1, )
-
-        Returns:
-            next_x (jnp.ndarray): next state, shape (state_size, )
-        """
-        raise NotImplementedError("Implement the model")
-
     @partial(jax.jit, static_argnums=(0,))
     def fx(
         self, x: jnp.ndarray, u: jnp.ndarray, t: Union[jnp.ndarray, int]
@@ -184,37 +167,36 @@ class TransitionModel(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class LinearTransitionModel(TransitionModel):
-    """discrete linear model, x[k+1] = Ax[k] + Bu[k]
+class DeterministicTransitionModel(TransitionModel, metaclass=ABCMeta):
+    def __init__(self):
+        super().__init__()
 
-    Attributes:
-        A (jnp.ndarray): shape(state_size, state_size)
-        B (jnp.ndarray): shape(state_size, input_size)
-    """
+    def is_deterministic(self):
+        return True
 
-    def __init__(self, A: jnp.ndarray, B: jnp.ndarray):
-        """ """
-        super(LinearTransitionModel, self).__init__()
-        assert A.shape[0] == B.shape[0]
-        assert A.shape[0] == A.shape[1]
-        self._A = A
-        self._B = B
 
-    @partial(jax.jit, static_argnums=(0,))
-    def predict_next_state(
+class ProbabilisticTransitionModel(TransitionModel, metaclass=ABCMeta):
+    _key: jax.random.KeyArray
+
+    def __init__(self, key: jax.random.KeyArray):
+        super().__init__()
+        self._key = key
+
+    def is_probabilistic(self):
+        return True
+
+    @abstractmethod
+    def predict_next_state_distribution(
         self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
-    ) -> jnp.ndarray:
+    ) -> Distribution:
         """predict next state
 
         Args:
-            curr_x (jnp.ndarray): current state, shape (state_size, )
+            x (jnp.ndarray): states, shape (state_size, )
             u (jnp.ndarray): input, shape (input_size, )
-            t (int): time step
+            t (jnp.ndarray): time step, shape (1, )
 
         Returns:
-            next_x (jnp.ndarray): next state, shape (state_size, )
+            Distribution: next state distribution
         """
-        next_x = jnp.matmul(self._A, x[:, jnp.newaxis]) + jnp.matmul(
-            self._B, u[:, jnp.newaxis]
-        )
-        return next_x.flatten()
+        raise NotImplementedError("Implement the model")

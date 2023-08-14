@@ -3,7 +3,8 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from apop.transition_model import LinearTransitionModel, TransitionModel
+from apop.transition_model import DeterministicTransitionModel
+from apop.transition_models.basic.linear import LinearTransitionModel
 
 
 class LinearInvertedCartPoleModel(LinearTransitionModel):
@@ -33,7 +34,7 @@ class LinearInvertedCartPoleModel(LinearTransitionModel):
         super().__init__(A=A, B=B)
 
 
-class SwingUpCartPoleModel(TransitionModel):
+class SwingUpCartPoleModel(DeterministicTransitionModel):
     def __init__(
         self,
         gravity: float = 9.8,
