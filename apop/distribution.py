@@ -1,13 +1,16 @@
 from abc import ABCMeta, abstractmethod
 from functools import partial
+from typing import Optional
 
 import jax
 from jax import numpy as jnp
 
 
 class Distribution(metaclass=ABCMeta):
-    def __init__(self) -> None:
-        pass
+    _key: jax.random.KeyArray
+
+    def __init__(self, key: jax.random.KeyArray) -> None:
+        self._key = key
 
     @abstractmethod
     @partial(jax.jit, static_argnums=(0, 1))
