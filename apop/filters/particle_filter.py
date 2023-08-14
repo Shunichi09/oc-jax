@@ -1,14 +1,14 @@
 # https://www.jstage.jst.go.jp/article/jrsj/29/5/29_5_427/_pdf
 # https://d-nb.info/1027390056/34
 
-from typing import Optional
+from typing import Optional, Union
 import jax
 import jax.numpy as jnp
 from functools import partial
 from apop.filter import Filter
 from apop.transition_model import TransitionModel
 from apop.distribution import Distribution
-from apop.random import new_key
+from apop.random import new_key, np_drng
 from apop.observation_model import ObservationModel
 
 
@@ -20,16 +20,17 @@ class ParticleFilter(Filter):
         self,
         transition_model: TransitionModel,
         observation_model: ObservationModel,
-        initial_importance_distribution: Distribution,
-        importance_distribution: Optional[Distribution],
+        initial_distribution: Distribution,
         num_particles: int,
         resampling_threshold: float,
+        initial_importance_distribution: Optional[Distribution] = None,
+        importance_distribution: Optional[Distribution] = None,
         jax_random_key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ) -> None:
-        super().__init__(transition_model)
+        super().__init__(transition_model, observation_model)
         self._x_particles = None  # shape (num_particles, state_size)
         self._particle_weights = None  # shape (num_particles, )
-        self._observation_model = observation_model
+        self._initial_distribution = initial_distribution
         self._initial_importance_distribution = initial_importance_distribution
         self._num_particles = num_particles
         self._resampling_threshold = resampling_threshold
@@ -39,35 +40,38 @@ class ParticleFilter(Filter):
         # NOTE: This could update because it unclear for users
         self._importance_distribution = importance_distribution
 
-    @partial(jax.jit, static_argnums=(0, 1))
-    def initialize(self, initial_distribution: Optional[Distribution] = None):
-        self._x_particles = self._importance_distribution.sample(self._num_particles)
+        self._initialize()
 
-        if initial_distribution is not None:
-            x_particle_importance_probs = self._importance_distribution.probability(
-                self._x_particles
+    def _initialize(self):
+        if self._initial_importance_distribution is not None:
+            self._x_particles = self._initial_importance_distribution(
+                self._num_particles
             )
-            x_particle_probs = initial_distribution.probability(self._x_particles)
+            x_particle_importance_probs = (
+                self._initial_importance_distribution.probability(self._x_particles)
+            )
+            x_particle_probs = self._initial_distribution.probability(self._x_particles)
             weights = x_particle_importance_probs / x_particle_probs
             self._particle_weights = weights / jnp.sum(weights)
         else:
-            self._particle_weights = (
-                jnp.ones((self._num_particles,)) / self._num_particles
+            self._x_particles = self._initial_distribution.sample(self._num_particles)
+            self._particle_weights = jnp.ones((self._num_particles,)) / float(
+                self._num_particles
             )
 
-    @partial(jax.jit, static_argnums=(0,))
-    def estimate(
-        self,
-        curr_y: jnp.ndarray,
-        curr_u: jnp.ndarray,
-    ) -> jnp.ndarray:
+    # @partial(jax.jit, static_argnums=(0,))
+    def predict(self, curr_u: jnp.ndarray, t: Union[jnp.ndarray, int]) -> jnp.ndarray:
+        self._x_particles = self._transition_model.predict_batched_next_state(
+            self._x_particles, jnp.tile(curr_u, (self._num_particles, 1)), t
+        )
+        return jnp.sum(
+            self._particle_weights[:, jnp.newaxis] * self._x_particles, axis=0
+        )
+
+    # @partial(jax.jit, static_argnums=(0,))
+    def estimate(self, curr_y: jnp.ndarray, mask: jnp.ndarray) -> jnp.ndarray:
         assert self._x_particles is not None, "Call initialize first"
         assert self._particle_weights is not None, "Call initialize first"
-
-        # predict step
-        self._x_particles = self._transition_model.predict_batched_next_state(
-            self._x_particles, jnp.tile(curr_u, (self._num_particles, 1))
-        )
 
         # filtering step
         # computes Nff
@@ -87,16 +91,16 @@ class ParticleFilter(Filter):
                 jnp.arange(1, self._num_particles + 1, dtype=jnp.float32) - 1 + sample_u
             ) / self._num_particles
             inserted_indices = jnp.searchsorted(I, u_l)
-            self._x_particles = self._x_particles.at[inserted_indices].set()
+            self._x_particles = self._x_particles[inserted_indices]
             self._particle_weights = (
                 jnp.ones((self._num_particles,)) / self._num_particles
             )
 
         batched_estimate_obs_prob_func = jax.vmap(
-            self._estimate_obs_prob, in_axes=(0, None), out_axes=0
+            self._estimate_obs_prob, in_axes=(0, None, None), out_axes=0
         )
         batched_estimated_probability = batched_estimate_obs_prob_func(
-            self._x_particles, curr_y
+            self._x_particles, curr_y, mask
         ).ravel()
 
         if self._importance_distribution is None:
@@ -119,7 +123,12 @@ class ParticleFilter(Filter):
     def particles(self) -> jnp.ndarray:
         return self._x_particles
 
-    @partial(jax.jit, static_argnums=(0,))
-    def _estimate_obs_prob(self, curr_x: jnp.ndarray, y: jnp.ndarray):
-        observation_distribution = self._observation_model.observe_distribution(curr_x)
+    # @partial(jax.jit, static_argnums=(0,))
+    def _estimate_obs_prob(
+        self, curr_x: jnp.ndarray, y: jnp.ndarray, observation_mask: jnp.ndarray
+    ):
+        observation_distribution = self._observation_model.observe_distribution(
+            curr_x, observation_mask
+        )
+        # NOTE: y.shape = (num_sensors, obs_size) -> output.shape = (1, )
         return observation_distribution.probability(y)
