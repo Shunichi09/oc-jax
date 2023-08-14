@@ -2,12 +2,13 @@ import pytest
 from jax import numpy as jnp
 import numpy as np
 
-from apop.cost_function import QuadraticCostFunction
+from apop.cost_functions.basic.quadratic import QuadraticCostFunction
 import jax
+from apop.random import np_drng
 
 
 def generate_symmetric_matrix(shape):
-    key = jax.random.PRNGKey(0)
+    key = jax.random.PRNGKey(np_drng.integers(1000))
     matrix = jax.random.normal(key, shape)
     return (matrix + matrix.T) * 0.5
 
@@ -17,23 +18,23 @@ class TestQuadraticFunc:
         state_size = 3
         input_size = 2
 
-        drng = np.random.default_rng()
+        np_drng = np.random.default_rng()
 
-        numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
+        numpy_Q = np_drng.random(size=(state_size, state_size)) * 0.1
         Q = jnp.array(numpy_Q)
 
-        numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
+        numpy_Qf = np_drng.random(size=(state_size, state_size)) * 0.2
         Qf = jnp.array(numpy_Qf)
 
-        numpy_R = drng.random(size=(input_size, input_size)) * 0.3
+        numpy_R = np_drng.random(size=(input_size, input_size)) * 0.3
         R = jnp.array(numpy_R)
 
-        numpy_F = drng.random(size=(state_size, input_size)) * 0.3
+        numpy_F = np_drng.random(size=(state_size, input_size)) * 0.3
         F = jnp.array(numpy_F)
         cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-        numpy_x = drng.random(size=state_size) * 0.1
-        numpy_u = drng.random(size=input_size) * 0.1
+        numpy_x = np_drng.random(size=state_size) * 0.1
+        numpy_u = np_drng.random(size=input_size) * 0.1
         x = jnp.array(numpy_x)
         u = jnp.array(numpy_u)
 
@@ -63,22 +64,22 @@ class TestQuadraticFunc:
         state_size = 3
         input_size = 2
 
-        drng = np.random.default_rng()
+        np_drng = np.random.default_rng()
 
-        numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
+        numpy_Q = np_drng.random(size=(state_size, state_size)) * 0.1
         Q = jnp.array(numpy_Q)
 
-        numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
+        numpy_Qf = np_drng.random(size=(state_size, state_size)) * 0.2
         Qf = jnp.array(numpy_Qf)
 
-        numpy_R = drng.random(size=(input_size, input_size)) * 0.3
+        numpy_R = np_drng.random(size=(input_size, input_size)) * 0.3
         R = jnp.array(numpy_R)
 
-        numpy_F = drng.random(size=(state_size, input_size)) * 0.3
+        numpy_F = np_drng.random(size=(state_size, input_size)) * 0.3
         F = jnp.array(numpy_F)
         cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-        numpy_x = drng.random(size=state_size) * 0.1
+        numpy_x = np_drng.random(size=state_size) * 0.1
         x = jnp.array(numpy_x)
 
         actual_cost = cost_func.evaluate_terminal_cost(
@@ -122,23 +123,23 @@ class TestQuadraticFunc:
         pred_len = 5
         input_size = 2
 
-        drng = np.random.default_rng()
+        np_drng = np.random.default_rng()
 
-        numpy_Q = drng.random(size=(state_size, state_size)) * 0.1
+        numpy_Q = np_drng.random(size=(state_size, state_size)) * 0.1
         Q = jnp.array(numpy_Q)
 
-        numpy_Qf = drng.random(size=(state_size, state_size)) * 0.2
+        numpy_Qf = np_drng.random(size=(state_size, state_size)) * 0.2
         Qf = jnp.array(numpy_Qf)
 
-        numpy_R = drng.random(size=(input_size, input_size)) * 0.3
+        numpy_R = np_drng.random(size=(input_size, input_size)) * 0.3
         R = jnp.array(numpy_R)
 
-        numpy_F = drng.random(size=(state_size, input_size)) * 0.3
+        numpy_F = np_drng.random(size=(state_size, input_size)) * 0.3
         F = jnp.array(numpy_F)
         cost_func = QuadraticCostFunction(Q, Qf, R, F)
 
-        numpy_x_seq = drng.random(size=(batch_size, pred_len + 1, state_size)) * 0.1
-        numpy_u_seq = drng.random(size=(batch_size, pred_len, input_size)) * 0.1
+        numpy_x_seq = np_drng.random(size=(batch_size, pred_len + 1, state_size)) * 0.1
+        numpy_u_seq = np_drng.random(size=(batch_size, pred_len, input_size)) * 0.1
         x_seq = jnp.array(numpy_x_seq)
         u_seq = jnp.array(numpy_u_seq)
 
