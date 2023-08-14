@@ -104,15 +104,16 @@ class ApopMujocoEnv(gymnasium.Env):
     def dt(self):
         return self.model.opt.timestep * self.frame_skip
 
-    def do_simulation(self, ctrl, n_frames):
+    def do_simulation(self, ctrl, n_frames, shape_test=True):
         """
         Step the simulation n number of frames and applying a control action.
         """
-        # Check control input is contained in the action space
-        if np.array(ctrl).shape != self.action_space.shape:
-            raise ValueError(
-                f"Action dimension mismatch. Expected {self.action_space.shape}, found {np.array(ctrl).shape}"
-            )
+        if shape_test:
+            # Check control input is contained in the action space
+            if np.array(ctrl).shape != self.action_space.shape:
+                raise ValueError(
+                    f"Action dimension mismatch. Expected {self.action_space.shape}, found {np.array(ctrl).shape}"
+                )
         self._step_mujoco_simulation(ctrl, n_frames)
 
     def _step_mujoco_simulation(self, ctrl, n_frames):
