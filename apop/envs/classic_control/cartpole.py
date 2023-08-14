@@ -6,7 +6,7 @@ from gymnasium import logger, spaces
 from gymnasium.envs.classic_control import utils
 from gymnasium.envs.classic_control.cartpole import CartPoleEnv
 
-from apop.random import drng
+from apop.random import np_drng
 from apop.utils.maths import fit_angle_in_range
 
 
@@ -62,7 +62,7 @@ class ContinuousInvertedCartPoleEnv(CartPoleEnv):
         assert self.state is not None, "Call reset before using step method."
         x, x_dot, theta, theta_dot = self.state
 
-        force = action[0] + drng.normal() * self.input_noise
+        force = action[0] + np_drng.normal() * self.input_noise
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
 
@@ -165,7 +165,7 @@ class ContinuousSwingUpCartPoleEnv(CartPoleEnv):
         assert self.state is not None, "Call reset before using step method."
         x, x_dot, theta, theta_dot = self.state
 
-        force = action[0] + drng.normal() * self.input_noise
+        force = action[0] + np_drng.normal() * self.input_noise
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
 

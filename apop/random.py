@@ -1,12 +1,12 @@
 import jax
 import numpy as np
 
-drng = np.random.default_rng()
+np_drng = np.random.default_rng()
 
 
 def seed(seed: int):
-    global drng
-    drng = np.random.default_rng(seed)
+    global np_drng
+    np_drng = np.random.default_rng(seed)
 
 
 def new_key(key: jax.random.KeyArray):
