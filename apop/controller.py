@@ -20,9 +20,11 @@ class Controller(metaclass=ABCMeta):
         self._cost_function = cost_function
 
     @abstractmethod
+    @partial(jax.jit, static_argnums=(0,))
     def control(
         self,
         curr_x: jnp.ndarray,
         initial_u_sequence: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         raise NotImplementedError
