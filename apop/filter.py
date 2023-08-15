@@ -6,8 +6,8 @@ import jax
 from jax import numpy as jnp
 
 from apop.cost_function import CostFunction
-from apop.transition_model import TransitionModel
 from apop.observation_model import ObservationModel
+from apop.transition_model import TransitionModel
 
 
 class Filter(metaclass=ABCMeta):
@@ -21,7 +21,12 @@ class Filter(metaclass=ABCMeta):
         self._observation_model = observation_model
 
     @abstractmethod
-    def predict(self, curr_u: jnp.ndarray) -> jnp.ndarray:
+    def predict(
+        self,
+        curr_u: jnp.ndarray,
+        t: Union[jnp.ndarray, int],
+        random_key: jax.random.KeyArray,
+    ) -> jnp.ndarray:
         """prediction step
 
         Args:
@@ -30,7 +35,9 @@ class Filter(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def estimate(self, curr_y: jnp.ndarray, mask: jnp.ndarray) -> jnp.ndarray:
+    def estimate(
+        self, curr_y: jnp.ndarray, mask: jnp.ndarray, random_key: jax.random.KeyArray
+    ) -> jnp.ndarray:
         """filtering step
 
         Args:
