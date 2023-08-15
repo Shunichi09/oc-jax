@@ -1,23 +1,20 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from functools import partial
-from typing import Optional
 
 import jax
 from jax import numpy as jnp
 
 
 class Distribution(metaclass=ABCMeta):
-    _key: jax.random.KeyArray
+    def __init__(self) -> None:
+        pass
 
-    def __init__(self, key: jax.random.KeyArray) -> None:
-        self._key = key
-
-    @abstractmethod
-    @partial(jax.jit, static_argnums=(0, 1))
-    def sample(self, num_samples: int) -> jnp.ndarray:
+    @partial(jax.jit, static_argnums=(0, 2))
+    def sample(self, random_key: jax.random.KeyArray, num_samples: int) -> jnp.ndarray:
         """sample variable from the distribution
 
         Args:
+            random_key (jax.random.KeyArray): random key
             num_samples (int): num_samples
 
         Returns:
@@ -25,7 +22,6 @@ class Distribution(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
     @partial(jax.jit, static_argnums=(0,))
     def probability(self, x: jnp.ndarray) -> jnp.ndarray:
         """compute probability of the given variable
