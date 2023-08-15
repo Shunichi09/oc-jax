@@ -1,7 +1,6 @@
 import pytest
 from jax import numpy as jnp
 import numpy as np
-from scipy.stats import multivariate_normal
 
 from apop.transition_models.basic.linear import LinearGaussianTransitionModel
 from apop.observation_models.basic.linear import LinearGaussianObservationModel
@@ -10,11 +9,6 @@ from apop.distributions.gaussian import Gaussian
 
 import jax
 from apop.random import np_drng
-
-from jax import config
-
-config.update("jax_debug_nans", True)
-config.update("jax_disable_jit", True)
 
 
 class TestParticleFilter:
@@ -26,7 +20,7 @@ class TestParticleFilter:
         A[2, 3] = dt
         B = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 0.0], [0.0, 1.0]])
         C = np.array([[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]])
-        covariance = np.eye(2) * (0.01**2)
+        covariance = np.eye(2) * (0.025**2)
         init_x = np.array([0.0, 0.0, 0.0, 0.0])
         init_x_cov = np.diag([0.01, 0.01, 0.01, 0.01]) ** 2
         state_x_cov = np.diag([0.002, 0.001, 0.002, 0.001]) ** 2
@@ -70,7 +64,7 @@ class TestParticleFilter:
         expected = np.array(filter.predict(u, 0).block_until_ready())
         actual = np.matmul(A, np.zeros((4, 1))) + np.matmul(B, u[:, np.newaxis])
         assert np.allclose(expected[[0, 2]], actual.flatten()[[0, 2]], atol=1e-1)
-        assert np.allclose(expected[[1, 3]], actual.flatten()[[1, 3]], atol=1)
+        assert np.allclose(expected[[1, 3]], actual.flatten()[[1, 3]], atol=1e-1)
 
     def test_estimate_numeric_assertions(self):
         num_particles = 1000
@@ -79,7 +73,6 @@ class TestParticleFilter:
         x = np.zeros((4,))
 
         for i, u in enumerate(u_seq):
-            print(i)
             filter.predict(u, 0)
             # gt transition
             gt_state = np.matmul(A, x[:, np.newaxis]) + np.matmul(B, u[:, np.newaxis])
@@ -87,21 +80,18 @@ class TestParticleFilter:
             # gt obs
             y = np.array([gt_state[0], gt_state[2]])
             # noised obs
-            y += np_drng.normal(size=2) * 0.01
+            y += np_drng.normal(size=2) * 0.025
             # estimation
             estimated = filter.estimate(
                 jnp.array(y), mask=jnp.array([1.0], dtype=jnp.bool_)
-            )
+            ).block_until_ready()
             cov_x = jnp.cov(filter.particles()[:, 0])
             cov_xdot = jnp.cov(filter.particles()[:, 1])
             cov_y = jnp.cov(filter.particles()[:, 2])
             cov_ydot = jnp.cov(filter.particles()[:, 3])
 
-            assert np.allclose(np.array(estimated)[[1, 3]], gt_state[[1, 3]], atol=1)
+            assert np.allclose(np.array(estimated)[[1, 3]], gt_state[[1, 3]], atol=1e-1)
             assert np.allclose(np.array(estimated)[[0, 2]], gt_state[[0, 2]], atol=1e-1)
-            print(estimated, gt_state)
-            print(cov_x**0.5, cov_xdot**0.5, cov_y**0.5, cov_ydot**0.5)
-            # update gt
             x = gt_state
 
 

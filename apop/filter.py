@@ -21,7 +21,6 @@ class Filter(metaclass=ABCMeta):
         self._observation_model = observation_model
 
     @abstractmethod
-    @partial(jax.jit, static_argnums=(0,))
     def predict(self, curr_u: jnp.ndarray) -> jnp.ndarray:
         """prediction step
 
@@ -31,7 +30,6 @@ class Filter(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    @partial(jax.jit, static_argnums=(0,))
     def estimate(self, curr_y: jnp.ndarray, mask: jnp.ndarray) -> jnp.ndarray:
         """filtering step
 
