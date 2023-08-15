@@ -2,20 +2,16 @@ import argparse
 import os
 
 import gymnasium
+import jax
 import numpy as np
 from gymnasium.wrappers.record_video import RecordVideo
-
-# pip install gymnasium[classic-control]
-from jax import config
 from jax import numpy as jnp
 
 import apop
 from apop.controllers.cem import TruncatedGaussianCrossEntropyMethod
 from apop.cost_functions.classic_control.acrobot import AcrobotCostFunction
+from apop.random import new_key
 from apop.transition_models.classic_control.acrobot import AcrobotModel
-
-config.update("jax_debug_nans", True)
-# config.update("jax_disable_jit", True)
 
 
 def run(args):
@@ -54,6 +50,7 @@ def run(args):
     state, info = env.reset()
     terminated = False
     truncated = False
+    key = jax.random.PRNGKey(0)
 
     optimized_u_sequence = jnp.zeros((T, 1))
     total_score = 0.0
@@ -61,8 +58,9 @@ def run(args):
         if args.random_action:
             action = env.action_space.sample()
         else:
+            key = new_key(key)
             optimized_u_sequence = controller.control(
-                jnp.array(state), optimized_u_sequence
+                jnp.array(state), optimized_u_sequence, key
             )
 
         action = np.array(optimized_u_sequence[0])

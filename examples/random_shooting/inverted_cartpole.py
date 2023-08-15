@@ -2,6 +2,7 @@ import argparse
 import os
 
 import gymnasium
+import jax
 import numpy as np
 from gymnasium.wrappers.record_video import RecordVideo
 from jax import numpy as jnp
@@ -9,9 +10,8 @@ from jax import numpy as jnp
 import apop
 from apop.controllers.random_shooting import UniformRandomShootingMethod
 from apop.cost_functions.basic.quadratic import QuadraticCostFunction
+from apop.random import new_key
 from apop.transition_models.classic_control.cartpole import LinearInvertedCartPoleModel
-
-# pip install gymnasium[classic-control]
 
 
 def run(args):
@@ -46,12 +46,15 @@ def run(args):
 
     optimized_u_sequence = jnp.zeros((T, 1))
     total_score = 0.0
+    key = jax.random.PRNGKey(0)
+
     while not (terminated or truncated):
         if args.random_action:
             action = env.action_space.sample()
         else:
+            key = new_key(key)
             optimized_u_sequence = controller.control(
-                jnp.array(state), optimized_u_sequence
+                jnp.array(state), optimized_u_sequence, key
             )
 
         action = np.array(optimized_u_sequence[0])
