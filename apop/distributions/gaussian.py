@@ -1,22 +1,19 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
-from functools import partial
-from typing import Optional
 
 from apop.distribution import Distribution
-from apop.random import new_key
 
 
 class Gaussian(Distribution):
-    def __init__(
-        self, key: jax.random.KeyArray, mean: jnp.ndarray, full_covariance: jnp.ndarray
-    ) -> None:
-        super().__init__(key)
+    def __init__(self, mean: jnp.ndarray, full_covariance: jnp.ndarray) -> None:
+        super().__init__()
         self._mean = mean
         self._full_covariance = full_covariance
 
-    @partial(jax.jit, static_argnums=(0, 1))
-    def sample(self, num_samples: int) -> jnp.ndarray:
+    @partial(jax.jit, static_argnums=(0, 2))
+    def sample(self, random_key: jax.random.KeyArray, num_samples: int) -> jnp.ndarray:
         """sample variable from the distribution
 
         Args:
@@ -25,10 +22,8 @@ class Gaussian(Distribution):
         Returns:
             jnp:ndarray: sampled variables, shape (num_samples, state_size)
         """
-        jax.debug.print(f"Num samples {self._key}")
-        self._key = new_key(self._key)
         return jax.random.multivariate_normal(
-            self._key, self._mean, self._full_covariance, shape=(num_samples,)
+            random_key, self._mean, self._full_covariance, shape=(num_samples,)
         )
 
     @partial(jax.jit, static_argnums=(0,))
@@ -49,18 +44,17 @@ class Gaussian(Distribution):
 class IIDGaussian(Distribution):
     def __init__(
         self,
-        key: jax.random.KeyArray,
         means: jnp.ndarray,
         full_covariances: jnp.ndarray,
     ) -> None:
-        super().__init__(key)
+        super().__init__()
         self._means = means
         self._full_covariances = full_covariances
         assert self._means.shape[0] == self._full_covariances.shape[0]
         self._num_gaussians = self._means.shape[0]
 
-    @partial(jax.jit, static_argnums=(0, 1))
-    def sample(self, num_samples: int) -> jnp.ndarray:
+    @partial(jax.jit, static_argnums=(0, 2))
+    def sample(self, random_key: jax.random.KeyArray, num_samples: int) -> jnp.ndarray:
         """sample variable from the distribution
 
         Args:
@@ -69,17 +63,18 @@ class IIDGaussian(Distribution):
         Returns:
             jnp:ndarray: sampled variables, shape (num_samples, num_gaussians, state_size)
         """
-        self._key = new_key(self._key)
 
-        def sample_from_one(mean, full_covariance):
+        def sample_from_one(mean, full_covariance, key):
             return jax.random.multivariate_normal(
-                self._key, mean, full_covariance, shape=(num_samples,)
+                key, mean, full_covariance, shape=(num_samples,)
             )
 
-        batch_sample_func = jax.vmap(sample_from_one, in_axes=(0, 0), out_axes=0)
-        samples = batch_sample_func(self._means, self._full_covariances).reshape(
-            self._num_gaussians, num_samples, -1
-        )
+        batch_sample_func = jax.vmap(sample_from_one, in_axes=(0, 0, 0), out_axes=0)
+        samples = batch_sample_func(
+            self._means,
+            self._full_covariances,
+            jax.random.split(random_key, num=self._num_gaussians),
+        ).reshape(self._num_gaussians, num_samples, -1)
         # output.shape (num_samples, num_gaussians, state_size)
         return jnp.transpose(samples, (1, 0, 2))
 
