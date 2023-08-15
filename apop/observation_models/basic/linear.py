@@ -1,17 +1,13 @@
 from functools import partial
-from typing import Optional
+
 import jax
 from jax import numpy as jnp
 
 from apop.distributions.gaussian import Gaussian
-from apop.observation_model import (
-    DeterministicObservationModel,
-    ProbabilisticObservationModel,
-)
-from apop.random import new_key, np_drng
+from apop.observation_model import ObservationModel
 
 
-class LinearObservationModel(DeterministicObservationModel):
+class LinearObservationModel(ObservationModel):
     """linear observation model"""
 
     _C: jnp.ndarray
@@ -22,7 +18,10 @@ class LinearObservationModel(DeterministicObservationModel):
 
     @partial(jax.jit, static_argnums=(0,))
     def observe(
-        self, curr_x: jnp.ndarray, observation_mask: jnp.ndarray
+        self,
+        curr_x: jnp.ndarray,
+        observation_mask: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """observe y from x
 
@@ -35,22 +34,24 @@ class LinearObservationModel(DeterministicObservationModel):
         return jnp.matmul(self._C, curr_x[:, jnp.newaxis]).ravel()
 
 
-class LinearGaussianObservationModel(ProbabilisticObservationModel):
+class LinearGaussianObservationModel(ObservationModel):
     """linear observation model with gaussian dist with fixed covariance"""
 
     def __init__(
         self,
         C: jnp.ndarray,
         covariance: jnp.ndarray,
-        key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ):
-        super().__init__(key)
+        super().__init__()
         self._C = C
         self._covariance = covariance
 
     @partial(jax.jit, static_argnums=(0,))
     def observe(
-        self, curr_x: jnp.ndarray, observation_mask: jnp.ndarray
+        self,
+        curr_x: jnp.ndarray,
+        observation_mask: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """observe y from x
 
@@ -60,7 +61,9 @@ class LinearGaussianObservationModel(ProbabilisticObservationModel):
         Returns:
             jnp.ndarray: observation state, shape (observation_size, )
         """
-        return self.observe_distribution(curr_x, observation_mask).sample(1)[0]
+        return self.observe_distribution(curr_x, observation_mask).sample(
+            random_key, 1
+        )[0]
 
     def observe_distribution(
         self, curr_x: jnp.ndarray, observation_mask: jnp.ndarray
@@ -74,6 +77,5 @@ class LinearGaussianObservationModel(ProbabilisticObservationModel):
             Gaussian: gaussian distribution
         """
         mean = jnp.matmul(self._C, curr_x[:, jnp.newaxis]).ravel()
-        self._key = new_key(self._key)
-        dist = Gaussian(self._key, mean=mean, full_covariance=self._covariance)
+        dist = Gaussian(mean=mean, full_covariance=self._covariance)
         return dist

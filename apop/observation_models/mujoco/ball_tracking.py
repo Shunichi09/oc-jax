@@ -1,27 +1,29 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
-from functools import partial
-from typing import Optional
 
-from apop.observation_model import ProbabilisticObservationModel
 from apop.distributions.gaussian import IIDGaussian
+from apop.observation_model import ObservationModel
 
 
-class Ball2dTrackingGaussianObservationModel(ProbabilisticObservationModel):
+class Ball2dTrackingGaussianObservationModel(ObservationModel):
     def __init__(
         self,
         covariance: jnp.ndarray,
         landmark_positions: jnp.ndarray,
-        key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ):
-        super().__init__(key)
-        assert len(covariance.shape) == 3
+        super().__init__()
+        assert len(covariance.shape) == 3  # num_landmarks, state, state
         self._covariance = covariance
         self._landmark_positions = landmark_positions
 
     @partial(jax.jit, static_argnums=(0,))
     def observe(
-        self, curr_x: jnp.ndarray, observation_mask: Optional[jnp.ndarray] = None
+        self,
+        curr_x: jnp.ndarray,
+        observation_mask: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """observe y from x
 
@@ -31,10 +33,14 @@ class Ball2dTrackingGaussianObservationModel(ProbabilisticObservationModel):
         Returns:
             jnp.ndarray: observation state, shape (observation_size, )
         """
-        return self.observe_distribution(curr_x, observation_mask).sample(1)[0]
+        return self.observe_distribution(curr_x, observation_mask).sample(
+            random_key, 1
+        )[0]
 
     def observe_distribution(
-        self, curr_x: jnp.ndarray, observation_mask: Optional[jnp.ndarray] = None
+        self,
+        curr_x: jnp.ndarray,
+        observation_mask: jnp.ndarray,
     ) -> IIDGaussian:
         """observe y from x
 
@@ -46,6 +52,7 @@ class Ball2dTrackingGaussianObservationModel(ProbabilisticObservationModel):
         """
         assert observation_mask is not None
         assert observation_mask.shape == (self._landmark_positions.shape[0],)
+        assert curr_x.shape == (3,)
 
         diff = self._landmark_positions[observation_mask] - curr_x[:2]
         mean_position = jnp.sqrt(jnp.sum(diff**2, axis=1))  # shape (num_landmarks, )
@@ -57,7 +64,6 @@ class Ball2dTrackingGaussianObservationModel(ProbabilisticObservationModel):
             - curr_x[2]
         )
         dist = IIDGaussian(
-            self._key,
             means=jnp.stack([mean_position, mean_angle], axis=1),
             full_covariances=self._covariance,
         )

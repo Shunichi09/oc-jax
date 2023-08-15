@@ -4,14 +4,10 @@ import jax
 from jax import numpy as jnp
 
 from apop.distributions.gaussian import Gaussian
-from apop.transition_model import (
-    DeterministicTransitionModel,
-    ProbabilisticTransitionModel,
-)
-from apop.random import new_key
+from apop.transition_model import TransitionModel
 
 
-class LinearTransitionModel(DeterministicTransitionModel):
+class LinearTransitionModel(TransitionModel):
     """discrete linear model, x[k+1] = Ax[k] + Bu[k]
 
     Attributes:
@@ -29,7 +25,11 @@ class LinearTransitionModel(DeterministicTransitionModel):
 
     @partial(jax.jit, static_argnums=(0,))
     def predict_next_state(
-        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+        self,
+        x: jnp.ndarray,
+        u: jnp.ndarray,
+        t: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """predict next state
 
@@ -47,16 +47,14 @@ class LinearTransitionModel(DeterministicTransitionModel):
         return next_x.ravel()
 
 
-class LinearGaussianTransitionModel(ProbabilisticTransitionModel):
+class LinearGaussianTransitionModel(TransitionModel):
     def __init__(
         self,
         A: jnp.ndarray,
         B: jnp.ndarray,
         covariance: jnp.ndarray,
-        key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ):
-        """ """
-        super().__init__(key)
+        super().__init__()
         assert A.shape[0] == B.shape[0]
         assert A.shape[0] == A.shape[1]
         self._A = A
@@ -65,7 +63,11 @@ class LinearGaussianTransitionModel(ProbabilisticTransitionModel):
 
     @partial(jax.jit, static_argnums=(0,))
     def predict_next_state(
-        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+        self,
+        x: jnp.ndarray,
+        u: jnp.ndarray,
+        t: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """predict next state
 
@@ -78,7 +80,7 @@ class LinearGaussianTransitionModel(ProbabilisticTransitionModel):
             next_x (jnp.ndarray): next state, shape (state_size, )
         """
         distribution = self.predict_next_state_distribution(x, u, t)
-        return distribution.sample(1)[0]
+        return distribution.sample(random_key, 1)[0]
 
     def predict_next_state_distribution(
         self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
@@ -96,6 +98,5 @@ class LinearGaussianTransitionModel(ProbabilisticTransitionModel):
         next_x = jnp.matmul(self._A, x[:, jnp.newaxis]) + jnp.matmul(
             self._B, u[:, jnp.newaxis]
         )
-        self._key = new_key(self._key)
-        dist = Gaussian(self._key, next_x.ravel(), self._covariance)
+        dist = Gaussian(next_x.ravel(), self._covariance)
         return dist

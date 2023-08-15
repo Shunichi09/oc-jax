@@ -3,10 +3,10 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from apop.transition_model import DeterministicTransitionModel
+from apop.transition_model import TransitionModel
 
 
-class MountainCarModel(DeterministicTransitionModel):
+class MountainCarModel(TransitionModel):
     def __init__(
         self,
         u_max: float = 1.0,
@@ -28,7 +28,11 @@ class MountainCarModel(DeterministicTransitionModel):
 
     @partial(jax.jit, static_argnums=(0,))
     def predict_next_state(
-        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+        self,
+        x: jnp.ndarray,
+        u: jnp.ndarray,
+        t: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """predict next state
 

@@ -4,11 +4,11 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from apop.transition_model import DeterministicTransitionModel
+from apop.transition_model import TransitionModel
 from apop.utils.jax_functions import fit_angle_in_range
 
 
-class AcrobotModel(DeterministicTransitionModel):
+class AcrobotModel(TransitionModel):
     def __init__(
         self,
         link_mass_1: float = 1.0,
@@ -36,7 +36,11 @@ class AcrobotModel(DeterministicTransitionModel):
 
     @partial(jax.jit, static_argnums=(0,))
     def predict_next_state(
-        self, x: jnp.ndarray, u: jnp.ndarray, t: jnp.ndarray
+        self,
+        x: jnp.ndarray,
+        u: jnp.ndarray,
+        t: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         """predict next state
 
