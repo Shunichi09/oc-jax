@@ -12,7 +12,7 @@ register(
 register(
     id="Ball2dTracking-v0",
     entry_point="apop.envs.mujoco.ball2d_moving:Ball2dTrackingEnv",
-    max_episode_steps=1000,
+    max_episode_steps=500,
 )
 
 register(
