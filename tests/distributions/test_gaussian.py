@@ -14,8 +14,8 @@ class TestGaussian:
         mean = np_drng.random(size=3)
         sample_size = 10000
         covariance = np.eye(3)
-        dist = Gaussian(key, jnp.array(mean), jnp.array(covariance))
-        samples = dist.sample(sample_size).block_until_ready()
+        dist = Gaussian(jnp.array(mean), jnp.array(covariance))
+        samples = dist.sample(key, sample_size).block_until_ready()
         assert samples.shape == (sample_size, 3)
 
         assert np.allclose(mean, np.mean(samples, axis=0), atol=1e-1)
@@ -27,8 +27,8 @@ class TestGaussian:
         key = jax.random.PRNGKey(0)
         mean = np_drng.random(size=3)
         covariance = np.eye(3)
-        dist = Gaussian(key, jnp.array(mean), jnp.array(covariance))
-        samples = dist.sample(500)
+        dist = Gaussian(jnp.array(mean), jnp.array(covariance))
+        samples = dist.sample(key, 500)
         actual = dist.probability(samples).block_until_ready()
         assert actual.shape == (500,)
         expected = multivariate_normal.pdf(np.array(samples), mean, covariance)
@@ -42,11 +42,10 @@ class TestIIDGaussian:
         mean2 = np_drng.random(size=(1, 3)) * 100.0
         covariance = np.tile(np.eye(3), (2, 1, 1))
         dist = IIDGaussian(
-            key,
             jnp.array(np.concatenate([mean1, mean2], axis=0)),
             jnp.array(covariance),
         )
-        samples = np.array((dist.sample(500)).block_until_ready())
+        samples = np.array((dist.sample(key, 500)).block_until_ready())
         assert samples.shape == (500, 2, 3)
 
         assert np.allclose(np.mean(samples[:, 0, :], axis=0), mean1, atol=1e-1)
@@ -58,11 +57,10 @@ class TestIIDGaussian:
         mean2 = np_drng.random(size=(1, 3)) * 100.0
         covariance = np.tile(np.eye(3), (2, 1, 1))
         dist = IIDGaussian(
-            key,
             jnp.array(np.concatenate([mean1, mean2], axis=0)),
             jnp.array(covariance),
         )
-        samples = np.array((dist.sample(500)).block_until_ready())
+        samples = np.array((dist.sample(key, 500)).block_until_ready())
         actual = dist.probability(samples)
         assert actual.shape == (500,)
 
