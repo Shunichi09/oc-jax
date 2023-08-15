@@ -1,7 +1,6 @@
 from functools import partial
 
 import jax
-import matplotlib.pyplot as plt
 import numpy as np
 from jax import numpy as jnp
 
@@ -28,7 +27,6 @@ class MPPI(Controller):
         initial_covariance: np.ndarray,  # shape (input_size, input_size)
         upper_bound: np.ndarray,  # shape (state_size)
         lower_bound: np.ndarray,  # shape (state_size)
-        jax_random_key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ) -> None:
         # https://ieeexplore.ieee.org/abstract/document/7487277
 
@@ -46,13 +44,12 @@ class MPPI(Controller):
         # predict trajectory with noised inputs
         self._num_non_masks_of_u_sequence = int(self._sample_size * self._alpha)
 
-        self._jax_random_key = jax_random_key
-
     @partial(jax.jit, static_argnums=(0,))
     def control(
         self,
         curr_x: jnp.ndarray,
         initial_u_sequence: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         _, input_size = initial_u_sequence.shape
         assert input_size == self._input_size
@@ -63,11 +60,9 @@ class MPPI(Controller):
             initial_u_sequence, (self._sample_size, 1, 1)
         )
         # sample noise
-        self._jax_random_key = new_key(self._jax_random_key)
-
         # epsilon.shape = (sample_size, T, input_size)
         epsilon = jax.random.multivariate_normal(
-            self._jax_random_key,
+            random_key,
             mean=jnp.zeros(shape=(self._input_size,)),
             cov=self._initial_covariance,  # shape (input_size, input_size)
             shape=(self._sample_size, self._T),
@@ -94,7 +89,7 @@ class MPPI(Controller):
 
         # pred_x_sequence.shape = (batch_size, T+1, state_size), include init_state
         pred_x_sequence_samples = self._transition_model.predict_batched_trajectory(
-            tiled_curr_x, v_sequence_samples
+            tiled_curr_x, v_sequence_samples, new_key(random_key)
         )
         # compute costs with zero control
         cost_samples = self._cost_function.evaluate_batched_trajectory_cost(

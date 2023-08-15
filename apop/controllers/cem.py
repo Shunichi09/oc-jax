@@ -1,7 +1,6 @@
 from functools import partial
 
 import jax
-import matplotlib.pyplot as plt
 import numpy as np
 from jax import numpy as jnp
 
@@ -28,7 +27,6 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         initial_diag_variance: np.ndarray,  # shape (input_size)
         upper_bound: np.ndarray,  # shape (state_size)
         lower_bound: np.ndarray,  # shape (state_size)
-        jax_random_key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ) -> None:
         super().__init__(transition_model, cost_function)
         self._T = T
@@ -40,13 +38,13 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
         self._lower_bound = jnp.array(lower_bound)
         self._input_size = initial_diag_variance.shape[0]
         self._alpha = alpha
-        self._jax_random_key = jax_random_key
 
     @partial(jax.jit, static_argnums=(0,))
     def control(
         self,
         curr_x: jnp.ndarray,
         initial_u_sequence: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         _, input_size = initial_u_sequence.shape
         assert input_size == self._input_size
@@ -68,9 +66,8 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
                 variance,
             )
             # sample inputs sequence
-            self._jax_random_key = new_key(self._jax_random_key)
             noise = jax.random.truncated_normal(
-                self._jax_random_key,
+                random_key,
                 lower=-2.0,
                 upper=2.0,
                 shape=(self._sample_size, self._T, self._input_size),
@@ -82,7 +79,7 @@ class TruncatedGaussianCrossEntropyMethod(Controller):
             )
             # pred_x_sequence.shape = (batch_size, T+1, state_size), include init_state
             pred_x_sequence_samples = self._transition_model.predict_batched_trajectory(
-                tiled_curr_x, u_sequence_samples
+                tiled_curr_x, u_sequence_samples, new_key(random_key)
             )
 
             # costs

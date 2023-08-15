@@ -23,28 +23,26 @@ class UniformRandomShootingMethod(Controller):
         sample_size: int,
         upper_bound: np.ndarray,  # shape (state_size)
         lower_bound: np.ndarray,  # shape (state_size)
-        jax_random_key: jax.random.KeyArray = jax.random.PRNGKey(0),
     ) -> None:
         super().__init__(transition_model, cost_function)
         self._T = T
         self._sample_size = sample_size
         self._upper_bound = jnp.array(upper_bound)
         self._lower_bound = jnp.array(lower_bound)
-        self._jax_random_key = jax_random_key
 
-    # @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnums=(0,))
     def control(
         self,
         curr_x: jnp.ndarray,
         initial_u_sequence: jnp.ndarray,
+        random_key: jax.random.KeyArray,
     ) -> jnp.ndarray:
         _, input_size = initial_u_sequence.shape
         tiled_curr_x = jnp.tile(curr_x, (self._sample_size, 1))
 
         # sample inputs sequence
-        self._jax_random_key = new_key(self._jax_random_key)
         noise = jax.random.uniform(
-            self._jax_random_key, shape=(self._sample_size, self._T, input_size)
+            random_key, shape=(self._sample_size, self._T, input_size)
         )
         # shape (batch_size, T, input_size)
         u_sequence_samples = (
@@ -57,7 +55,7 @@ class UniformRandomShootingMethod(Controller):
         )
         # pred_x_sequence.shape = (batch_size, T+1, state_size), include init_state
         pred_x_sequence_samples = self._transition_model.predict_batched_trajectory(
-            tiled_curr_x, u_sequence_samples
+            tiled_curr_x, u_sequence_samples, new_key(random_key)
         )
         # costs
         cost_samples = self._cost_function.evaluate_batched_trajectory_cost(
