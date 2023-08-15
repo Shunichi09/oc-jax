@@ -9,6 +9,7 @@ def seed(seed: int):
     np_drng = np.random.default_rng(seed)
 
 
+@jax.jit
 def new_key(key: jax.random.KeyArray):
     _, subkey = jax.random.split(key)
     return subkey
